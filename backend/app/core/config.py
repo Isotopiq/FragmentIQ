@@ -12,8 +12,10 @@ class Settings(BaseSettings):
     upload_max_mb: int = 2048
     mock_execution: bool = True
     mock_job_step_seconds: float = 0.05
+    job_timeout_seconds: int = 7200
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
     mzmine_binary: str = "mzmine"
+    mzmine_batch_flag: str = "-batch"
     sirius_binary: str = "sirius"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

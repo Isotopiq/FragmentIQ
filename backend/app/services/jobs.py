@@ -5,7 +5,6 @@ import csv
 import json
 import math
 import random
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -18,6 +17,7 @@ from app.core.storage import job_dir, log_path, zip_paths
 from app.models.domain import DatasetFile, Job, JobCreate, JobLog, ResultTable, Workflow
 from app.services.engines import detect_engines
 from app.services.parsers import normalize_feature_records, parse_table
+from app.services.runners import ExternalToolError, RealRunContext, run_real_pipeline
 from app.services.workflows import WORKFLOW_PRESETS
 
 TASKS: dict[int, asyncio.Task] = {}
@@ -53,7 +53,10 @@ def create_job(session: Session, payload: JobCreate) -> Job:
         session.refresh(workflow)
         workflow_id = workflow.id
 
-    command_args = ["mock-runner", "--job-type", payload.job_type] if settings.mock_execution else ["external-runner"]
+    workflow = session.get(Workflow, workflow_id)
+    if not workflow:
+        raise ValueError("Workflow not found")
+    command_args = ["mock-runner", "--job-type", payload.job_type] if settings.mock_execution else ["fragmentiq-runner", payload.job_type]
     job = Job(
         project_id=payload.project_id,
         workflow_id=workflow_id,
@@ -70,12 +73,12 @@ def create_job(session: Session, payload: JobCreate) -> Job:
     session.commit()
     session.refresh(job)
     append_log(session, job, "Job queued")
-    if settings.mock_execution:
-        try:
-            loop = asyncio.get_running_loop()
-            TASKS[job.id] = loop.create_task(run_mock_job(job.id))
-        except RuntimeError:
-            run_mock_job_sync(job.id)
+    runner = run_mock_job if settings.mock_execution else run_real_job
+    try:
+        loop = asyncio.get_running_loop()
+        TASKS[job.id] = loop.create_task(runner(job.id))
+    except RuntimeError:
+        asyncio.run(runner(job.id))
     return job
 
 
@@ -135,11 +138,58 @@ async def run_mock_job(job_id: int) -> None:
                 append_log(session, job, f"Job failed: {exc}", "error")
 
 
+async def run_real_job(job_id: int) -> None:
+    """Run installed engines with safe argv lists when mock mode is disabled."""
+    with Session(engine) as session:
+        job = session.get(Job, job_id)
+        if not job:
+            return
+        job.status = "running"
+        job.stage = "validating input"
+        job.progress = 5
+        job.started_at = datetime.utcnow()
+        session.add(job)
+        append_log(session, job, "Real execution requested; validating installed engines and project-owned inputs")
+
+    try:
+        with Session(engine) as session:
+            job = session.get(Job, job_id)
+            workflow = session.get(Workflow, job.workflow_id) if job and job.workflow_id else None
+            if not job or not workflow:
+                raise ExternalToolError("Job workflow is missing")
+            files = session.exec(select(DatasetFile).where(DatasetFile.project_id == job.project_id)).all()
+            context = RealRunContext(job=job, workflow=workflow, files=files)
+
+        await asyncio.to_thread(run_real_pipeline, context)
+        with Session(engine) as session:
+            job = session.get(Job, job_id)
+            if not job:
+                return
+            job.status = "complete"
+            job.stage = "complete"
+            job.progress = 100
+            job.completed_at = datetime.utcnow()
+            session.add(job)
+            append_log(session, job, "Real LC-MS/MS workflow complete")
+    except Exception as exc:
+        with Session(engine) as session:
+            job = session.get(Job, job_id)
+            if job:
+                job.status = "failed"
+                job.stage = "failed"
+                job.progress = max(job.progress, 5)
+                job.error_message = str(exc)
+                job.completed_at = datetime.utcnow()
+                session.add(job)
+                append_log(session, job, f"Real workflow failed: {exc}", "error")
+
+
 def write_mock_results(job_id: int) -> None:
     with Session(engine) as session:
         job = session.get(Job, job_id)
         if not job:
             return
+        session.exec(select(ResultTable).where(ResultTable.job_id == job.id)).all()
         features = _load_feature_upload(session, job.project_id) or _generate_features()
         annotations = [_annotation(row, idx) for idx, row in enumerate(features, start=1)]
         statistics = [_statistics(row, idx) for idx, row in enumerate(features, start=1)]

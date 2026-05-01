@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import Layout, { PageKey } from "./components/Layout";
+import { useEffect, useState } from "react";
+import Layout, { type PageKey } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Upload from "./pages/Upload";
@@ -21,7 +21,7 @@ export default function App() {
   const [projectId, setProjectId] = useState<number | undefined>();
 
   async function refreshProjects() {
-    const data = await api.listProjects();
+    const data = await api.projects.list();
     setProjects(data);
     if (!projectId && data[0]) setProjectId(data[0].id);
   }
@@ -29,11 +29,6 @@ export default function App() {
   useEffect(() => {
     refreshProjects().catch(console.error);
   }, []);
-
-  const common = useMemo(
-    () => ({ projectId, refreshProjects, navigate: setPage }),
-    [projectId],
-  );
 
   return (
     <Layout
@@ -43,18 +38,18 @@ export default function App() {
       projectId={projectId}
       setProjectId={setProjectId}
     >
-      {page === "dashboard" && <Dashboard {...common} />}
-      {page === "projects" && <Projects {...common} />}
-      {page === "upload" && <Upload {...common} />}
-      {page === "metadata" && <Metadata {...common} />}
-      {page === "workflows" && <WorkflowBuilder {...common} />}
-      {page === "jobs" && <JobMonitor {...common} />}
-      {page === "results" && <Results {...common} />}
-      {page === "visualizations" && <Visualizations {...common} />}
-      {page === "statistics" && <Statistics {...common} />}
-      {page === "network" && <Network {...common} />}
-      {page === "libraries" && <Libraries {...common} />}
-      {page === "system" && <SystemStatus {...common} />}
+      {page === "dashboard" && <Dashboard />}
+      {page === "projects" && <Projects />}
+      {page === "upload" && <Upload projects={projects} refresh={refreshProjects} />}
+      {page === "metadata" && <Metadata />}
+      {page === "workflows" && <WorkflowBuilder />}
+      {page === "jobs" && <JobMonitor />}
+      {page === "results" && <Results />}
+      {page === "visualizations" && <Visualizations />}
+      {page === "statistics" && <Statistics />}
+      {page === "network" && <Network />}
+      {page === "libraries" && <Libraries />}
+      {page === "system" && <SystemStatus />}
     </Layout>
   );
 }

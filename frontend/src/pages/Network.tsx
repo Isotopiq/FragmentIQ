@@ -90,8 +90,8 @@ export function Network() {
                   },
                 },
               ]}
-              cy={(cy) => {
-                cy.on("tap", "node", (event) => setSelected(event.target.data()));
+              cy={(cy: any) => {
+                cy.on("tap", "node", (event: any) => setSelected(event.target.data()));
               }}
             />
           </div>
@@ -115,3 +115,5 @@ export function Network() {
     </div>
   );
 }
+
+export default Network;

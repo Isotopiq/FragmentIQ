@@ -13,7 +13,7 @@ const colors: Record<string, string> = {
   error: "failure",
 };
 
-export function StatusBadge({ value }: { value?: string }) {
-  const label = value || "unknown";
-  return <Badge color={colors[label] || "purple"}>{label.replaceAll("_", " ")}</Badge>;
+export function StatusBadge({ value, status }: { value?: string; status?: string }) {
+  const label = value || status || "unknown";
+  return <Badge color={colors[label] || "purple"}>{label.split("_").join(" ")}</Badge>;
 }

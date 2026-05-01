@@ -40,3 +40,5 @@ export function SystemStatus() {
     </div>
   );
 }
+
+export default SystemStatus;

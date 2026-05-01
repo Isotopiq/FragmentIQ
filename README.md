@@ -2,7 +2,7 @@
 
 FragmentIQ is a self-hostable LC-MS/MS processing and annotation platform MVP. It provides a browser GUI for projects, raw data uploads, sample metadata/grouping, editable workflow presets, mock MZmine/SIRIUS/ML-MS/MS jobs, interactive results, Plotly visualizations, molecular-network preview, engine status, and reproducible exports.
 
-This repository currently delivers the requested **initial MVP**. It runs end-to-end in mock mode without MZmine, SIRIUS, DREAMS, MS2DeepScore, or MS2Query installed. The backend is structured so real workers can replace mock execution while preserving safe subprocess argument construction, original `.mzbatch` content, engine/version metadata, logs, and per-job result directories.
+This repository currently delivers the requested **initial MVP plus real-runner scaffolding**. It runs end-to-end in mock mode without MZmine, SIRIUS, DREAMS, MS2DeepScore, or MS2Query installed. With `MOCK_EXECUTION=false`, the backend validates project-owned inputs, preserves the exact `.mzbatch` workflow, constructs safe subprocess argument arrays (`shell=False`), captures stdout/stderr, writes a command manifest, and parses supported MZmine/SIRIUS output tables when the external tools create them.
 
 ## Stack
 
@@ -35,7 +35,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Frontend:
+Frontend (Node 20+ or 22+):
 
 ```bash
 cd frontend
@@ -60,12 +60,22 @@ Mock execution is controlled by `MOCK_EXECUTION=true`. To integrate real engines
 
 1. Mount or install MZmine in `workers/mzmine` or the backend/worker image.
 2. Set `MZMINE_BINARY` to the executable path.
-3. Mount SIRIUS in `workers/sirius` and set `SIRIUS_BINARY`.
-4. Configure SIRIUS login/license server-side only. Do not expose credentials through frontend environment variables.
-5. Replace the mock job runner in `backend/app/services/jobs.py` with queue-backed worker tasks that call `subprocess.run([...], shell=False)`.
-6. Preserve each submitted `.mzbatch` under `data/workflow_configs` or the job result directory.
+3. Set `MZMINE_BATCH_FLAG` if your deployed MZmine wrapper expects a flag other than `-batch`.
+4. Mount SIRIUS in `workers/sirius` and set `SIRIUS_BINARY`.
+5. Configure SIRIUS login/license server-side only. Do not expose credentials through frontend environment variables.
+6. Set `MOCK_EXECUTION=false` only after the external tools are installed and validated.
+7. Submit jobs with uploaded project-owned inputs. Real MZmine jobs require mzML/mzXML/imzML plus preserved `.mzbatch`; real SIRIUS jobs require MGF/MSP or an explicitly selected input file.
 
 The engine status page already detects Java, MZmine, SIRIUS, matchms, MS2DeepScore, MS2Query, DREAMS, Spec2Vec, RDKit, mounted models, and mounted libraries.
+
+Real-run artifacts:
+
+- `data/workflow_configs/job_<id>.mzbatch`
+- `data/results/job_<id>/workflow.mzbatch`
+- `data/results/job_<id>/command_manifest.json`
+- `data/results/job_<id>/*.stdout.log`
+- `data/results/job_<id>/*.stderr.log`
+- parsed `ResultTable` rows when supported output files are present
 
 ## Libraries and models
 
@@ -108,9 +118,7 @@ Implemented MVP endpoints include:
 Backend:
 
 ```bash
-cd backend
-pip install -r requirements.txt
-pytest
+PYTHONPATH=backend python3 -m pytest backend/tests
 ```
 
 Frontend:
@@ -127,6 +135,7 @@ npm run build
 - If uploads fail, confirm the file extension is supported and `UPLOAD_MAX_MB` is large enough.
 - If engine status says `not_installed`, mount/install the corresponding binary or Python package in the relevant image.
 - If SIRIUS needs login/license, configure it inside the backend/worker environment; credentials are intentionally absent from the frontend.
+- If real jobs fail immediately, inspect `data/results/job_<id>/command_manifest.json` and the corresponding stderr log.
 - To reset local state, stop containers and remove `data/database/fragmentiq.db` plus per-job directories under `data/results`.
 
 ## Production notes

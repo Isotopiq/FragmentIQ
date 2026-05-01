@@ -44,7 +44,7 @@ export function Dashboard() {
           </div>
           <div className="flex flex-wrap gap-2">
             {['New MZmine Job', 'New SIRIUS Job', 'Full Pipeline', 'Upload Spectral Library', 'New Statistical Analysis'].map((action) => (
-              <Button key={action} size="sm" gradientDuoTone="cyanToBlue">
+              <Button key={action} size="sm" color="blue">
                 {action}
               </Button>
             ))}
@@ -81,7 +81,7 @@ export function Dashboard() {
                     {engine.status}
                   </Badge>
                 </div>
-                <div className="mt-1 truncate text-xs text-gray-500">{engine.version || engine.message || 'No version detected'}</div>
+                <div className="mt-1 truncate text-xs text-gray-500">{engine.version || engine.notes || 'No version detected'}</div>
               </div>
             ))}
           </div>
@@ -91,3 +91,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+export default Dashboard;

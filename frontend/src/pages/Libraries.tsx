@@ -43,14 +43,14 @@ export function Libraries() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="text-lg font-semibold">Upload spectral library</h2>
-          <Label value="Library name" />
+          <Label>Library name</Label>
           <TextInput value={libraryFile?.name || ''} readOnly placeholder="Select a file" />
           <FileInput onChange={(event) => setLibraryFile(event.target.files?.[0] || null)} />
           <Button onClick={uploadLibrary} disabled={!libraryFile}>Upload library</Button>
         </Card>
         <Card>
           <h2 className="text-lg font-semibold">Upload pretrained model</h2>
-          <Label value="Model name" />
+          <Label>Model name</Label>
           <TextInput value={modelFile?.name || ''} readOnly placeholder="Select a file" />
           <FileInput onChange={(event) => setModelFile(event.target.files?.[0] || null)} />
           <Button onClick={uploadModel} disabled={!modelFile}>Upload model</Button>
@@ -67,3 +67,5 @@ export function Libraries() {
     </div>
   );
 }
+
+export default Libraries;

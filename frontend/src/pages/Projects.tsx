@@ -30,11 +30,11 @@ export function Projects() {
         <Card>
           <h2 className="text-xl font-semibold">Create project</h2>
           <div>
-            <Label value="Name" />
+            <Label>Name</Label>
             <TextInput value={name} onChange={(event) => setName(event.target.value)} />
           </div>
           <div>
-            <Label value="Description" />
+            <Label>Description</Label>
             <Textarea rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />
           </div>
           <Button onClick={create} disabled={!name.trim()}>
@@ -61,3 +61,5 @@ export function Projects() {
     </div>
   );
 }
+
+export default Projects;

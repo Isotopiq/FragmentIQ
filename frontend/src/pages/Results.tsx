@@ -53,7 +53,7 @@ export function Results() {
           <h2 className="mb-3 font-semibold">Volcano plot</h2>
           <Plot
             data={[{ type: 'scattergl', mode: 'markers', x: volcano.x, y: volcano.y, text: volcano.text, marker: { color: '#4f46e5', size: 8 } }]}
-            layout={{ autosize: true, height: 380, margin: { l: 50, r: 20, t: 20, b: 50 }, xaxis: { title: 'log2 fold change' }, yaxis: { title: '-log10 adjusted p-value' } }}
+            layout={{ autosize: true, height: 380, margin: { l: 50, r: 20, t: 20, b: 50 }, xaxis: { title: { text: 'log2 fold change' } }, yaxis: { title: { text: '-log10 adjusted p-value' } } }}
             useResizeHandler
             className="h-[380px] w-full"
           />
@@ -62,7 +62,7 @@ export function Results() {
           <h2 className="mb-3 font-semibold">RT vs m/z feature map</h2>
           <Plot
             data={[{ type: 'scattergl', mode: 'markers', x: features.map((row) => Number(row.rt ?? 0)), y: features.map((row) => Number(row.mz ?? 0)), marker: { color: features.map((row) => Number(row.intensity ?? 0)), colorscale: 'Viridis', showscale: true } }]}
-            layout={{ autosize: true, height: 380, margin: { l: 50, r: 20, t: 20, b: 50 }, xaxis: { title: 'RT' }, yaxis: { title: 'm/z' } }}
+            layout={{ autosize: true, height: 380, margin: { l: 50, r: 20, t: 20, b: 50 }, xaxis: { title: { text: 'RT' } }, yaxis: { title: { text: 'm/z' } } }}
             useResizeHandler
             className="h-[380px] w-full"
           />
@@ -80,3 +80,5 @@ export function Results() {
     </div>
   )
 }
+
+export default Results

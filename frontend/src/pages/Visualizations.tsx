@@ -54,7 +54,7 @@ export function Visualizations() {
                 marker: { color: '#4f46e5', size: 10 },
               },
             ]}
-            layout={{ height: 360, margin: { t: 20, l: 50, r: 20, b: 45 }, xaxis: { title: 'PC1' }, yaxis: { title: 'PC2' } }}
+            layout={{ height: 360, margin: { t: 20, l: 50, r: 20, b: 45 }, xaxis: { title: { text: 'PC1' } }, yaxis: { title: { text: 'PC2' } } }}
             config={{ responsive: true, displaylogo: false }}
           />
         </div>
@@ -72,7 +72,7 @@ export function Visualizations() {
                 text: stats.map((row) => row.feature_id),
               },
             ]}
-            layout={{ height: 360, margin: { t: 20, l: 50, r: 20, b: 45 }, xaxis: { title: 'log2 fold-change' }, yaxis: { title: '-log10 p-value' } }}
+            layout={{ height: 360, margin: { t: 20, l: 50, r: 20, b: 45 }, xaxis: { title: { text: 'log2 fold-change' } }, yaxis: { title: { text: '-log10 p-value' } } }}
             config={{ responsive: true, displaylogo: false }}
           />
         </div>
@@ -89,7 +89,7 @@ export function Visualizations() {
                 marker: { color: features.map((row) => Number(row.intensity || 1)), colorscale: 'Viridis', size: 7, showscale: true },
               },
             ]}
-            layout={{ height: 360, margin: { t: 20, l: 55, r: 20, b: 45 }, xaxis: { title: 'RT (min)' }, yaxis: { title: 'm/z' } }}
+            layout={{ height: 360, margin: { t: 20, l: 55, r: 20, b: 45 }, xaxis: { title: { text: 'RT (min)' } }, yaxis: { title: { text: 'm/z' } } }}
             config={{ responsive: true, displaylogo: false }}
           />
         </div>
@@ -114,3 +114,5 @@ export function Visualizations() {
     </div>
   )
 }
+
+export default Visualizations

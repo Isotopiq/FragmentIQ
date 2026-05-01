@@ -68,7 +68,7 @@ export function WorkflowBuilder() {
         <Card>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label value="Project" />
+              <Label>Project</Label>
               <Select value={projectId} onChange={(event) => setProjectId(Number(event.target.value))}>
                 <option value="">Create project automatically</option>
                 {projects.map((project) => (
@@ -79,7 +79,7 @@ export function WorkflowBuilder() {
               </Select>
             </div>
             <div>
-              <Label value="Workflow preset" />
+              <Label>Workflow preset</Label>
               <Select value={presetId} onChange={(event) => setPresetId(event.target.value)}>
                 {presets.map((preset) => (
                   <option key={preset.id} value={preset.id}>
@@ -105,14 +105,14 @@ export function WorkflowBuilder() {
             <div className="grid gap-4 md:grid-cols-3">
               {Object.entries(selectedPreset?.parameters || {}).map(([key, value]) => (
                 <div key={key}>
-                  <Label value={key.replaceAll('_', ' ')} />
+                  <Label>{key.split('_').join(' ')}</Label>
                   <TextInput defaultValue={String(value)} />
                 </div>
               ))}
             </div>
           )}
           <div>
-            <Label value="Raw .mzbatch XML/text (preserved for reproducibility)" />
+            <Label>Raw .mzbatch XML/text (preserved for reproducibility)</Label>
             <Textarea rows={8} value={mzbatchText} onChange={(event) => setMzbatchText(event.target.value)} />
           </div>
           <Button onClick={submitWorkflow}>Save workflow and submit mock job</Button>
@@ -131,3 +131,5 @@ export function WorkflowBuilder() {
     </div>
   );
 }
+
+export default WorkflowBuilder;

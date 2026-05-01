@@ -65,7 +65,7 @@ export function Metadata() {
       <Card>
         <div className="grid gap-4 md:grid-cols-4">
           <div>
-            <Label value="Project" />
+            <Label>Project</Label>
             <Select value={projectId ?? ''} onChange={(event) => setProjectId(Number(event.target.value))}>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>{project.name}</option>
@@ -73,7 +73,7 @@ export function Metadata() {
             </Select>
           </div>
           <div>
-            <Label value="Add custom column" />
+            <Label>Add custom column</Label>
             <div className="flex gap-2">
               <TextInput value={newColumn} onChange={(event) => setNewColumn(event.target.value)} placeholder="time_point" />
               <Button
@@ -88,7 +88,7 @@ export function Metadata() {
             </div>
           </div>
           <div>
-            <Label value="Filename auto-grouping preview" />
+            <Label>Filename auto-grouping preview</Label>
             <TextInput placeholder="regex: ^(?<condition>[^_]+)_" />
           </div>
           <div className="flex items-end">
@@ -162,3 +162,5 @@ export function Metadata() {
     </div>
   );
 }
+
+export default Metadata;

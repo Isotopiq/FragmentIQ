@@ -35,7 +35,7 @@ export function Upload({ projects, refresh }: Props) {
       <Card>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <Label value="Project" />
+            <Label>Project</Label>
             <Select value={projectId} onChange={(event) => setProjectId(Number(event.target.value))}>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
@@ -45,8 +45,9 @@ export function Upload({ projects, refresh }: Props) {
             </Select>
           </div>
           <div>
-            <Label value="Drag-and-drop or choose files" />
-            <FileInput multiple onChange={(event) => submit(event.target.files)} helperText="Large-file friendly streaming uploads with server-side extension and size checks." />
+            <Label>Drag-and-drop or choose files</Label>
+            <FileInput multiple onChange={(event) => submit(event.target.files)} />
+            <p className="mt-1 text-xs text-slate-500">Large-file friendly streaming uploads with server-side extension and size checks.</p>
           </div>
         </div>
         <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50 p-8 text-center text-sm text-indigo-700">
@@ -60,3 +61,5 @@ export function Upload({ projects, refresh }: Props) {
     </div>
   );
 }
+
+export default Upload;

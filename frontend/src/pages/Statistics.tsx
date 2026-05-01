@@ -42,15 +42,23 @@ export function Statistics() {
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Volcano preview</h2>
         <Plot
           data={volcano as Data[]}
-          layout={{ autosize: true, height: 420, xaxis: { title: "log2 fold change" }, yaxis: { title: "-log10 adjusted p" }, margin: { t: 20 } }}
+          layout={{
+            autosize: true,
+            height: 420,
+            xaxis: { title: { text: "log2 fold change" } },
+            yaxis: { title: { text: "-log10 adjusted p" } },
+            margin: { t: 20 },
+          }}
           useResizeHandler
           className="h-full w-full"
         />
       </div>
       <div className="card">
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Statistics result table</h2>
-        <DataTable rows={rows} maxColumns={13} />
+        <DataTable rows={rows} maxRows={25} />
       </div>
     </div>
   );
 }
+
+export default Statistics;
