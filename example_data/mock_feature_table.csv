@@ -1,0 +1,5 @@
+feature_id,mz,rt,sample_control_mean,sample_treated_mean,ion_mode
+F0001,101.0701,0.54,230000,410000,positive
+F0002,215.1456,2.13,870000,540000,negative
+F0003,389.2012,5.82,140000,390000,positive
+F0004,512.3367,7.24,620000,680000,positive

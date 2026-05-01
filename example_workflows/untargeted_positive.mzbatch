@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<batch mzmine_version="preserve-user-installed-version">
+  <batchstep method="Raw data import">
+    <parameter name="File names">
+      <file>UPLOADS_SELECTED_AT_RUNTIME</file>
+    </parameter>
+  </batchstep>
+  <batchstep method="Mass detection">
+    <parameter name="Detector">Centroid</parameter>
+    <parameter name="Noise level">1000</parameter>
+  </batchstep>
+  <batchstep method="Chromatogram builder">
+    <parameter name="Min time span">0.05</parameter>
+    <parameter name="Min height">3000</parameter>
+    <parameter name="m/z tolerance">10 ppm</parameter>
+  </batchstep>
+  <batchstep method="Join aligner">
+    <parameter name="m/z tolerance">10 ppm</parameter>
+    <parameter name="RT tolerance">0.2 min</parameter>
+  </batchstep>
+  <batchstep method="CSV export">
+    <parameter name="Filename">features.csv</parameter>
+  </batchstep>
+  <batchstep method="MGF export">
+    <parameter name="Filename">spectra.mgf</parameter>
+  </batchstep>
+</batch>
