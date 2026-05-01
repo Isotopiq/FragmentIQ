@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import Session, select
 
 from app.core.config import settings
-from app.core.database import get_session
+from app.core.database import get_session, reset_demo_data, seed_demo_data
 from app.core.storage import (
     detect_file_kind,
     file_size,
@@ -32,6 +32,17 @@ router = APIRouter()
 @router.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@router.post("/demo/reset")
+def reset_demo() -> dict[str, Any]:
+    reset_demo_data()
+    seeded = seed_demo_data()
+    return {
+        "status": "seeded",
+        "project_id": seeded.get("project_id"),
+        "job_id": seeded.get("job_id"),
+    }
 
 
 @router.post("/projects", response_model=Project)
@@ -136,7 +147,33 @@ async def create_metadata(
     else:
         parsed = {"columns": ["sample_name", "condition", "batch", "replicate"], "rows": []}
     warnings = validate_metadata_rows(parsed["columns"], parsed["rows"])
-    table = MetadataTable(project_id=project_id, name=name, columns=parsed["columns"], rows=parsed["rows"], warnings=warnings)
+    table = MetadataTable(
+        project_id=project_id,
+        name=name,
+        columns=parsed["columns"],
+        rows=parsed["rows"],
+        group_columns=[],
+        warnings=warnings,
+    )
+    session.add(table)
+    session.commit()
+    session.refresh(table)
+    return table
+
+
+@router.post("/projects/{project_id}/metadata/json", response_model=MetadataTable)
+def create_metadata_json(project_id: int, payload: MetadataTable, session: Session = Depends(get_session)) -> MetadataTable:
+    if not session.get(Project, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    warnings = validate_metadata_rows(payload.columns, payload.rows)
+    table = MetadataTable(
+        project_id=project_id,
+        name=payload.name,
+        columns=payload.columns,
+        rows=payload.rows,
+        group_columns=payload.group_columns,
+        warnings=warnings,
+    )
     session.add(table)
     session.commit()
     session.refresh(table)

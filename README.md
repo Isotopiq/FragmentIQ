@@ -45,6 +45,10 @@ npm run dev
 
 ## MVP workflow
 
+For a production-demo walkthrough, click **Reset seeded demo** on the Dashboard after startup. This creates a demo
+project, sample metadata table, uploaded mock feature table, preserved workflow, completed mock pipeline job, parsed
+feature/annotation/statistics tables, Plotly-ready result payloads, molecular network data, report HTML, and a ZIP export.
+
 1. Create a project from the Dashboard or Projects page.
 2. Upload mzML/mzXML/MGF/MSP/CSV/TSV/mzTab files.
 3. Upload or edit sample metadata with grouping columns such as condition, batch, subject ID, and time point.

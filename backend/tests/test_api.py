@@ -76,3 +76,17 @@ def test_download_job_zip_exists():
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/zip"
     assert Path(get_settings().results_dir).exists()
+
+
+def test_demo_reset_creates_completed_scrutiny_job():
+    response = client.post("/api/demo/reset")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "seeded"
+    assert payload["job_id"]
+
+    job = client.get(f"/api/jobs/{payload['job_id']}").json()
+    assert job["status"] == "complete"
+
+    annotations = client.get(f"/api/jobs/{payload['job_id']}/results/annotations").json()
+    assert len(annotations["rows"]) >= 50

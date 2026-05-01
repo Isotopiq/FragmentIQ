@@ -1,20 +1,31 @@
 import { Badge, Button, Card, Progress } from 'flowbite-react';
 import { useEffect, useState } from 'react';
-import { getEngines, getJobs, getProjects } from '../lib/api';
+import { api, getEngines, getJobs, getProjects } from '../lib/api';
 import type { EngineStatus, Job, Project } from '../lib/types';
 
 export function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [engines, setEngines] = useState<EngineStatus[]>([]);
+  const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    void Promise.all([getProjects(), getJobs(), getEngines()]).then(([projectRows, jobRows, engineRows]) => {
+  async function loadDashboard() {
+    const [projectRows, jobRows, engineRows] = await Promise.all([getProjects(), getJobs(), getEngines()]);
       setProjects(projectRows);
       setJobs(jobRows);
       setEngines(engineRows);
-    });
+  }
+
+  useEffect(() => {
+    void loadDashboard();
   }, []);
+
+  async function resetDemo() {
+    setMessage('Seeding demo project, metadata, workflow, completed job, and result artifacts...');
+    const response = await api.resetDemo();
+    setMessage(`Demo ready: project ${response.project_id}, completed job ${response.job_id}.`);
+    await loadDashboard();
+  }
 
   const completed = jobs.filter((job) => job.status === 'complete').length;
   const failed = jobs.filter((job) => job.status === 'failed').length;
@@ -43,6 +54,9 @@ export function Dashboard() {
             <p className="text-sm text-gray-500">Launch common LC-MS/MS workflows in mock mode or with installed engines.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button size="sm" color="purple" onClick={resetDemo}>
+              Reset production demo
+            </Button>
             {['New MZmine Job', 'New SIRIUS Job', 'Full Pipeline', 'Upload Spectral Library', 'New Statistical Analysis'].map((action) => (
               <Button key={action} size="sm" color="blue">
                 {action}
@@ -50,6 +64,7 @@ export function Dashboard() {
             ))}
           </div>
         </div>
+        {message && <p className="mt-4 rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-700">{message}</p>}
       </Card>
 
       <section className="grid gap-4 lg:grid-cols-2">

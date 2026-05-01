@@ -114,7 +114,8 @@ export const api = {
     return request<DatasetFile[]>(`/projects/${projectId}/files`, { method: 'POST', body: form }).then((items) => items[0])
   },
   engines: () => request<Record<string, EngineStatus>>('/system/engines'),
-  status: () => request<Record<string, unknown>>('/system/status')
+  status: () => request<Record<string, unknown>>('/system/status'),
+  resetDemo: () => request<{ status: string; project_id?: number; job_id?: number }>('/demo/reset', { method: 'POST' })
 }
 
 export const listProjects = () => api.projects()
