@@ -50,7 +50,7 @@ export function Projects() {
                   <p className="text-sm text-slate-500">{project.description || 'No description provided.'}</p>
                   <p className="mt-2 text-xs text-slate-400">Created {new Date(project.created_at).toLocaleString()}</p>
                 </div>
-                <Button color="light" href={`/projects/${project.id}/archive`}>
+                <Button color="light" onClick={() => window.open(`/api/projects/${project.id}/archive`, '_blank')}>
                   Download archive
                 </Button>
               </div>
