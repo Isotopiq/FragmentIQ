@@ -83,7 +83,16 @@ def create_job(session: Session, payload: JobCreate) -> Job:
 
 
 def run_mock_job_sync(job_id: int) -> None:
-    asyncio.run(run_mock_job(job_id))
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            pool.submit(asyncio.run, run_mock_job(job_id)).result()
+    else:
+        asyncio.run(run_mock_job(job_id))
 
 
 async def run_mock_job(job_id: int) -> None:

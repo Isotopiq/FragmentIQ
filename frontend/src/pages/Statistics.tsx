@@ -1,3 +1,4 @@
+import { Card } from "flowbite-react";
 import Plot from "react-plotly.js";
 import type { Data } from "plotly.js";
 
@@ -32,13 +33,13 @@ export function Statistics() {
       </div>
       <div className="grid gap-4 lg:grid-cols-4">
         {["median normalization", "log2 transform", "half-minimum imputation", "BH-FDR"].map((label) => (
-          <div key={label} className="card">
+          <Card key={label}>
             <p className="text-sm text-slate-500">Configured step</p>
             <p className="mt-2 font-semibold capitalize text-slate-900 dark:text-white">{label}</p>
-          </div>
+          </Card>
         ))}
       </div>
-      <div className="card">
+      <Card>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Volcano preview</h2>
         <Plot
           data={volcano as Data[]}
@@ -52,11 +53,11 @@ export function Statistics() {
           useResizeHandler
           className="h-full w-full"
         />
-      </div>
-      <div className="card">
+      </Card>
+      <Card>
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Statistics result table</h2>
         <DataTable rows={rows} maxRows={25} />
-      </div>
+      </Card>
     </div>
   );
 }

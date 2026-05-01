@@ -1,5 +1,6 @@
 import Plot from 'react-plotly.js'
 import { useEffect, useMemo, useState } from 'react'
+import { Card, Select } from 'flowbite-react'
 import { api } from '../lib/api'
 import { Job } from '../lib/types'
 
@@ -27,22 +28,22 @@ export function Visualizations() {
 
   return (
     <div className="space-y-6">
-      <div className="card p-6">
-        <h1 className="text-2xl font-bold text-slate-900">Visualization Studio</h1>
+      <Card>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Visualization Studio</h1>
         <p className="mt-1 text-sm text-slate-500">Plotly-powered PCA, volcano, heatmap, RT/mz, and annotation summaries.</p>
-        <select className="mt-4 rounded-lg border-slate-300" value={selected} onChange={(event) => setSelected(event.target.value)}>
+        <Select className="mt-4" value={selected} onChange={(event) => setSelected(event.target.value)}>
           <option value="">Select a completed job</option>
           {jobs.map((job) => (
             <option key={job.id} value={job.id}>
               #{job.id} {job.name}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <div className="card p-4">
-          <h2 className="font-semibold">PCA placeholder</h2>
+        <Card>
+          <h2 className="font-semibold text-slate-900 dark:text-white">PCA placeholder</h2>
           <Plot
             className="w-full"
             data={[
@@ -57,9 +58,9 @@ export function Visualizations() {
             layout={{ height: 360, margin: { t: 20, l: 50, r: 20, b: 45 }, xaxis: { title: { text: 'PC1' } }, yaxis: { title: { text: 'PC2' } } }}
             config={{ responsive: true, displaylogo: false }}
           />
-        </div>
-        <div className="card p-4">
-          <h2 className="font-semibold">Volcano plot</h2>
+        </Card>
+        <Card>
+          <h2 className="font-semibold text-slate-900 dark:text-white">Volcano plot</h2>
           <Plot
             className="w-full"
             data={[
@@ -75,9 +76,9 @@ export function Visualizations() {
             layout={{ height: 360, margin: { t: 20, l: 50, r: 20, b: 45 }, xaxis: { title: { text: 'log2 fold-change' } }, yaxis: { title: { text: '-log10 p-value' } } }}
             config={{ responsive: true, displaylogo: false }}
           />
-        </div>
-        <div className="card p-4">
-          <h2 className="font-semibold">RT vs m/z scatter</h2>
+        </Card>
+        <Card>
+          <h2 className="font-semibold text-slate-900 dark:text-white">RT vs m/z scatter</h2>
           <Plot
             className="w-full"
             data={[
@@ -92,9 +93,9 @@ export function Visualizations() {
             layout={{ height: 360, margin: { t: 20, l: 55, r: 20, b: 45 }, xaxis: { title: { text: 'RT (min)' } }, yaxis: { title: { text: 'm/z' } } }}
             config={{ responsive: true, displaylogo: false }}
           />
-        </div>
-        <div className="card p-4">
-          <h2 className="font-semibold">Top-feature heatmap</h2>
+        </Card>
+        <Card>
+          <h2 className="font-semibold text-slate-900 dark:text-white">Top-feature heatmap</h2>
           <Plot
             className="w-full"
             data={[
@@ -109,7 +110,7 @@ export function Visualizations() {
             layout={{ height: 360, margin: { t: 20, l: 85, r: 20, b: 45 } }}
             config={{ responsive: true, displaylogo: false }}
           />
-        </div>
+        </Card>
       </div>
     </div>
   )

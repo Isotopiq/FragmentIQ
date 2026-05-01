@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Card, Select } from "flowbite-react";
 import CytoscapeComponent from "react-cytoscapejs";
 import { api } from "../lib/api";
 import { Job } from "../lib/types";
@@ -47,16 +48,16 @@ export function Network() {
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Consensus MS/MS network</h1>
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="card">
+        <Card>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <select className="input max-w-xs" value={jobId} onChange={(event) => setJobId(Number(event.target.value))}>
+            <Select value={String(jobId)} onChange={(event) => setJobId(Number(event.target.value))}>
               <option value="">Demo network</option>
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
                   Job #{job.id} - {job.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <div className="flex gap-2 text-xs text-slate-500">
               <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-700">Color: class</span>
               <span className="rounded-full bg-indigo-100 px-3 py-1 text-indigo-700">Edge: cosine score</span>
@@ -95,8 +96,8 @@ export function Network() {
               }}
             />
           </div>
-        </div>
-        <aside className="card h-fit">
+        </Card>
+        <Card className="h-fit">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Node details</h2>
           {selected ? (
             <dl className="mt-4 space-y-3 text-sm">
@@ -110,7 +111,7 @@ export function Network() {
           ) : (
             <p className="mt-4 text-sm text-slate-500">Click a node to inspect m/z, RT, class, scores, and neighboring annotations.</p>
           )}
-        </aside>
+        </Card>
       </div>
     </div>
   );
