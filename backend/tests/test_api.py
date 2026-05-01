@@ -18,14 +18,14 @@ def test_project_upload_metadata_job_flow():
         files={"files": ("sample_a.mzML", b"fake mzml", "application/octet-stream")},
     )
     assert upload.status_code == 200
-    assert upload.json()[0]["extension"] == ".mzml"
+    assert upload.json()[0]["file_type"] == "mzML"
 
     metadata = client.post(
         f"/api/projects/{project['id']}/metadata",
         files={"file": ("metadata.csv", b"sample_name,condition\nsample_a,control\n", "text/csv")},
     )
     assert metadata.status_code == 200
-    assert metadata.json()["validation"]["valid"] is True
+    assert metadata.json()["warnings"] == []
 
     job = client.post(
         "/api/jobs",
@@ -59,7 +59,7 @@ def test_rejects_unsupported_upload_extension():
 
 def test_workflow_presets_and_engine_status():
     presets = client.get("/api/workflows/presets").json()
-    assert any(preset["engine"] == "mzmine" for preset in presets)
+    assert any("mzmine" in preset["engines"] for preset in presets)
 
     engines = client.get("/api/system/engines").json()
     assert "mzmine" in engines

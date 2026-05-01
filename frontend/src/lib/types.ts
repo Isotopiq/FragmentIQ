@@ -69,3 +69,27 @@ export type EngineStatus = {
   notes?: string;
 };
 
+export type LibraryAsset = {
+  id: number;
+  name: string;
+  asset_type: string;
+  source: string;
+  description?: string;
+  ion_mode?: string;
+  supported_engines: string[];
+  path: string;
+  size_bytes: number;
+  indexed: boolean;
+  created_at: string;
+};
+
+export type ModelAsset = {
+  id: number;
+  name: string;
+  engine: string;
+  version?: string;
+  path: string;
+  size_bytes: number;
+  created_at: string;
+};
+

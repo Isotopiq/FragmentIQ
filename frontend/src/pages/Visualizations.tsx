@@ -10,7 +10,7 @@ export function Visualizations() {
   const [stats, setStats] = useState<any[]>([])
 
   useEffect(() => {
-    api.listJobs().then((items) => {
+    api.jobs().then((items) => {
       setJobs(items)
       const complete = items.find((job) => job.status === 'complete')
       if (complete) setSelected(String(complete.id))
@@ -19,8 +19,8 @@ export function Visualizations() {
 
   useEffect(() => {
     if (!selected) return
-    api.getFeatures(selected).then(setFeatures)
-    api.getStatistics(selected).then(setStats)
+    api.features(Number(selected)).then((payload) => setFeatures(payload.rows))
+    api.statistics(Number(selected)).then((payload) => setStats(payload.rows))
   }, [selected])
 
   const heatmap = useMemo(() => stats.slice(0, 25), [stats])

@@ -24,7 +24,7 @@ export function Network() {
   const [selected, setSelected] = useState<any>(null);
 
   useEffect(() => {
-    api.listJobs().then((items) => {
+    api.jobs().then((items) => {
       setJobs(items);
       const complete = items.find((job) => job.status === "complete");
       if (complete) setJobId(complete.id);
@@ -33,7 +33,7 @@ export function Network() {
 
   useEffect(() => {
     if (!jobId) return;
-    api.getNetwork(Number(jobId)).then((data) => {
+    api.network(Number(jobId)).then((data) => {
       if (data?.nodes?.length) setNetwork(data);
     });
   }, [jobId]);

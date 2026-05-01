@@ -10,7 +10,7 @@ export function Libraries() {
   const [modelFile, setModelFile] = useState<File | null>(null);
 
   const load = () =>
-    Promise.all([api.listLibraries(), api.listModels()]).then(([libraryRows, modelRows]) => {
+    Promise.all([api.libraries(), api.models()]).then(([libraryRows, modelRows]) => {
       setLibraries(libraryRows);
       setModels(modelRows);
     });

@@ -58,10 +58,33 @@ export const api = {
   features: (jobId: number) => request<{ rows: Record<string, unknown>[] }>(`/jobs/${jobId}/results/features`),
   annotations: (jobId: number) => request<{ rows: Record<string, unknown>[] }>(`/jobs/${jobId}/results/annotations`),
   statistics: (jobId: number) => request<{ rows: Record<string, unknown>[] }>(`/jobs/${jobId}/results/statistics`),
+  results: (jobId: number, kind: 'features' | 'annotations' | 'statistics') =>
+    request<{ rows: Record<string, unknown>[] }>(`/jobs/${jobId}/results/${kind}`).then((payload) => payload.rows),
   plots: (jobId: number) => request<Record<string, unknown>>(`/jobs/${jobId}/results/plots`),
   network: (jobId: number) => request<{ nodes: unknown[]; edges: unknown[] }>(`/jobs/${jobId}/results/network`),
+  listJobs: (projectId?: number) => api.jobs(projectId),
+  getFeatures: (jobId: string | number) => api.features(Number(jobId)).then((payload) => payload.rows),
+  getStatistics: (jobId: string | number) => api.statistics(Number(jobId)).then((payload) => payload.rows),
+  getNetwork: (jobId: string | number) => api.network(Number(jobId)),
   libraries: () => request<LibraryAsset[]>('/libraries'),
+  listLibraries: () => request<LibraryAsset[]>('/libraries'),
+  uploadLibrary: (payload: { name: string; file: File; source?: string }) => {
+    const form = new FormData()
+    form.append('name', payload.name)
+    form.append('source', payload.source ?? 'user')
+    form.append('file', payload.file)
+    return request<LibraryAsset>('/libraries', { method: 'POST', body: form })
+  },
   models: () => request<ModelAsset[]>('/models'),
+  listModels: () => request<ModelAsset[]>('/models'),
+  uploadModel: (payload: { name: string; engine: string; file: File; version?: string }) => {
+    const form = new FormData()
+    form.append('name', payload.name)
+    form.append('engine', payload.engine)
+    if (payload.version) form.append('version', payload.version)
+    form.append('file', payload.file)
+    return request<ModelAsset>('/models', { method: 'POST', body: form })
+  },
   engines: () => request<Record<string, EngineStatus>>('/system/engines'),
   status: () => request<Record<string, unknown>>('/system/status')
 }

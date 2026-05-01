@@ -22,9 +22,9 @@ from app.core.storage import (
 )
 from app.models.domain import DatasetFile, Job, JobCreate, JobLog, LibraryAsset, MetadataTable, ModelAsset, Project, ResultTable, Workflow
 from app.services.engines import detect_engines
-from app.services.jobs import build_job_archive, create_job, result_rows, stream_job_events
+from app.services.jobs import build_results_zip, create_job, event_stream, result_rows
 from app.services.parsers import parse_metadata_text, validate_metadata_rows
-from app.services.workflows import WORKFLOW_PRESETS, validate_workflow_config
+from app.services.workflows import WORKFLOW_PRESETS, validate_workflow_payload
 
 router = APIRouter()
 
@@ -89,7 +89,7 @@ async def upload_files(project_id: int, files: list[UploadFile] = File(...), ses
         if kind == "unknown":
             raise HTTPException(status_code=400, detail=f"Unsupported file extension for {filename}")
         destination = safe_child(upload_dir, filename)
-        size = await save_upload(upload, destination, settings.max_upload_size_bytes)
+        size = await save_upload(upload, destination)
         item = DatasetFile(
             project_id=project_id,
             original_name=upload.filename or filename,
@@ -186,7 +186,7 @@ def create_workflow(payload: Workflow, session: Session = Depends(get_session)) 
     if payload.project_id and not session.get(Project, payload.project_id):
         raise HTTPException(status_code=404, detail="Project not found")
     payload.id = None
-    warnings = validate_workflow_config({"parameters": payload.parameters, "mzbatch_text": payload.mzbatch_text})
+    warnings = validate_workflow_payload({"parameters": payload.parameters, "mzbatch_text": payload.mzbatch_text})
     payload.parameters = {**payload.parameters, "validation_warnings": warnings}
     session.add(payload)
     session.commit()
@@ -223,15 +223,15 @@ def validate_workflow(workflow_id: int, session: Session = Depends(get_session))
     workflow = session.get(Workflow, workflow_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    warnings = validate_workflow_config({"parameters": workflow.parameters, "mzbatch_text": workflow.mzbatch_text})
+    warnings = validate_workflow_payload({"parameters": workflow.parameters, "mzbatch_text": workflow.mzbatch_text})
     return {"valid": not warnings, "warnings": warnings}
 
 
 @router.post("/jobs", response_model=Job)
-async def submit_job(payload: JobCreate, session: Session = Depends(get_session)) -> Job:
+def submit_job(payload: JobCreate, session: Session = Depends(get_session)) -> Job:
     if not session.get(Project, payload.project_id):
         raise HTTPException(status_code=404, detail="Project not found")
-    return await create_job(session, payload)
+    return create_job(session, payload)
 
 
 @router.get("/jobs", response_model=list[Job])
@@ -265,11 +265,11 @@ def cancel_job(job_id: int, session: Session = Depends(get_session)) -> Job:
 
 
 @router.post("/jobs/{job_id}/retry", response_model=Job)
-async def retry_job(job_id: int, session: Session = Depends(get_session)) -> Job:
+def retry_job(job_id: int, session: Session = Depends(get_session)) -> Job:
     old = session.get(Job, job_id)
     if not old:
         raise HTTPException(status_code=404, detail="Job not found")
-    return await create_job(session, JobCreate(project_id=old.project_id, workflow_id=old.workflow_id, name=f"Retry of {old.name}", job_type=old.job_type, parameters=old.parameters))
+    return create_job(session, JobCreate(project_id=old.project_id, workflow_id=old.workflow_id, name=f"Retry of {old.name}", job_type=old.job_type, parameters=old.parameters))
 
 
 @router.get("/jobs/{job_id}/logs")
@@ -282,7 +282,7 @@ def job_logs(job_id: int, session: Session = Depends(get_session)) -> dict[str, 
 
 @router.get("/jobs/{job_id}/events")
 def job_events(job_id: int) -> StreamingResponse:
-    return StreamingResponse(stream_job_events(job_id), media_type="text/event-stream")
+    return StreamingResponse(event_stream(job_id), media_type="text/event-stream")
 
 
 @router.get("/jobs/{job_id}/results/features")
@@ -318,9 +318,10 @@ def job_network(job_id: int) -> dict[str, Any]:
 
 @router.get("/jobs/{job_id}/download")
 def job_download(job_id: int, session: Session = Depends(get_session)) -> FileResponse:
-    if not session.get(Job, job_id):
+    job = session.get(Job, job_id)
+    if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    archive = build_job_archive(job_id)
+    archive = build_results_zip(job)
     return FileResponse(archive, filename=f"job-{job_id}.zip", media_type="application/zip")
 
 
@@ -328,7 +329,7 @@ def job_download(job_id: int, session: Session = Depends(get_session)) -> FileRe
 async def upload_library(name: str, file: UploadFile = File(...), source: str = "user", session: Session = Depends(get_session)) -> LibraryAsset:
     filename = sanitize_filename(file.filename or "library.mgf")
     destination = safe_child(settings.libraries_dir, filename)
-    await save_upload(file, destination, settings.max_upload_size_bytes)
+    await save_upload(file, destination)
     asset = LibraryAsset(name=name, source=source, path=str(destination), size_bytes=file_size(destination), supported_engines=["matchms", "ms2deepscore", "ms2query", "dreams"])
     session.add(asset)
     session.commit()
@@ -368,7 +369,7 @@ def index_library(library_id: int, session: Session = Depends(get_session)) -> L
 async def upload_model(name: str, engine: str, file: UploadFile = File(...), version: str | None = None, session: Session = Depends(get_session)) -> ModelAsset:
     filename = sanitize_filename(file.filename or "model.bin")
     destination = safe_child(settings.models_dir, filename)
-    await save_upload(file, destination, settings.max_upload_size_bytes)
+    await save_upload(file, destination)
     asset = ModelAsset(name=name, engine=engine, version=version, path=str(destination), size_bytes=file_size(destination))
     session.add(asset)
     session.commit()

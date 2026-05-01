@@ -1,4 +1,5 @@
 import Plot from "react-plotly.js";
+import type { Data } from "plotly.js";
 
 import { DataTable } from "../components/DataTable";
 import { api } from "../lib/api";
@@ -7,7 +8,7 @@ import { useAsync } from "../lib/useAsync";
 export function Statistics() {
   const jobs = useAsync(() => api.jobs(), []);
   const latest = jobs.data?.find((job) => job.status === "complete") ?? jobs.data?.[0];
-  const stats = useAsync(() => (latest ? api.results(latest.id, "statistics") : Promise.resolve([])), [latest?.id]);
+  const stats = useAsync(async () => (latest ? (await api.statistics(latest.id)).rows : []), [latest?.id]);
 
   const rows = stats.data ?? [];
   const volcano = rows.map((row) => ({
@@ -40,7 +41,7 @@ export function Statistics() {
       <div className="card">
         <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Volcano preview</h2>
         <Plot
-          data={volcano as Plotly.Data[]}
+          data={volcano as Data[]}
           layout={{ autosize: true, height: 420, xaxis: { title: "log2 fold change" }, yaxis: { title: "-log10 adjusted p" }, margin: { t: 20 } }}
           useResizeHandler
           className="h-full w-full"

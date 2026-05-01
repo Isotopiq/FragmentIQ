@@ -55,3 +55,28 @@ def parse_feature_table(path: Path, max_rows: int | None = None) -> dict[str, An
     if frame.empty:
         warnings.append("Parsed table is empty.")
     return {"columns": list(frame.columns), "rows": frame.fillna("").to_dict(orient="records"), "warnings": warnings}
+
+
+def parse_table(path: Path, max_rows: int | None = None) -> tuple[list[dict[str, Any]], list[str]]:
+    parsed = parse_feature_table(path, max_rows=max_rows)
+    return parsed["rows"], parsed["warnings"]
+
+
+def normalize_feature_records(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    aliases = {
+        "feature_id": ["feature_id", "id", "row id", "peak_id", "feature"],
+        "mz": ["mz", "m/z", "row mz", "mass"],
+        "rt": ["rt", "retention_time", "row retention time", "retention time"],
+        "intensity": ["intensity", "area", "height", "sample_control_mean"],
+    }
+    normalized: list[dict[str, Any]] = []
+    for idx, row in enumerate(rows, start=1):
+        lowered = {str(key).strip().lower(): value for key, value in row.items()}
+        item: dict[str, Any] = {"feature_id": str(idx), "original": row}
+        for target, names in aliases.items():
+            for name in names:
+                if name in lowered and lowered[name] not in ("", None):
+                    item[target] = lowered[name]
+                    break
+        normalized.append(item)
+    return normalized
