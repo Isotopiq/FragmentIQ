@@ -71,7 +71,14 @@ export function JobMonitor() {
                   <Button size="xs" color="light" onClick={() => api.retryJob(selected.id).then(refresh)}>
                     Retry
                   </Button>
-                  <Button size="xs" color="blue" onClick={() => window.open(`/api/jobs/${selected.id}/download`, "_blank")}>
+                  <Button size="xs" color="blue" onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = `/api/jobs/${selected.id}/download`;
+                    a.download = `job-${selected.id}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                  }}>
                     Download ZIP
                   </Button>
                 </div>
