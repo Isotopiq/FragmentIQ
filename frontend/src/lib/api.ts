@@ -31,6 +31,7 @@ function flattenEngines(payload: Record<string, EngineStatus | Record<string, un
     status: typeof value === 'object' && value && 'status' in value ? String(value.status) : 'unknown',
     version: typeof value === 'object' && value && 'version' in value ? String(value.version ?? '') : undefined,
     notes: typeof value === 'object' && value && 'notes' in value ? String(value.notes ?? '') : undefined,
+    installable: typeof value === 'object' && value && 'installable' in value ? Boolean(value.installable) : undefined,
   }))
 }
 
@@ -115,6 +116,11 @@ export const api = {
   },
   engines: () => request<Record<string, EngineStatus>>('/system/engines'),
   status: () => request<Record<string, unknown>>('/system/status'),
+  installPackage: (packageName: string) =>
+    request<{ status: string; message: string; detail?: Record<string, unknown> }>('/system/packages/install', {
+      method: 'POST',
+      body: JSON.stringify({ package: packageName }),
+    }),
   resetDemo: () => request<{ status: string; project_id?: number; job_id?: number }>('/demo/reset', { method: 'POST' })
 }
 

@@ -21,7 +21,7 @@ from app.core.storage import (
     zip_paths,
 )
 from app.models.domain import DatasetFile, Job, JobCreate, JobLog, LibraryAsset, MetadataTable, ModelAsset, Project, ResultTable, Workflow
-from app.services.engines import detect_engines
+from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, install_package
 from app.services.jobs import build_results_zip, create_job, event_stream, result_rows
 from app.services.parsers import parse_metadata_text, validate_metadata_rows
 from app.services.workflows import WORKFLOW_PRESETS, validate_workflow_payload
@@ -444,3 +444,31 @@ def system_status() -> dict[str, Any]:
 @router.get("/system/engines")
 def system_engines() -> dict[str, Any]:
     return detect_engines()
+
+
+@router.get("/system/packages")
+def list_installable_packages() -> dict[str, Any]:
+    engines = detect_engines()
+    packages = []
+    for name, pip_name in INSTALLABLE_PACKAGES.items():
+        engine_info = engines.get(name, {})
+        packages.append({
+            "name": name,
+            "pip_name": pip_name,
+            "status": engine_info.get("status", "unknown"),
+            "version": engine_info.get("version"),
+        })
+    return {"packages": packages}
+
+
+@router.post("/system/packages/install")
+def install_system_package(payload: dict[str, str]) -> dict[str, Any]:
+    package_name = payload.get("package")
+    if not package_name:
+        raise HTTPException(status_code=400, detail="Missing 'package' field")
+    if package_name not in INSTALLABLE_PACKAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Package '{package_name}' is not installable. Allowed: {', '.join(sorted(INSTALLABLE_PACKAGES))}",
+        )
+    return install_package(package_name)

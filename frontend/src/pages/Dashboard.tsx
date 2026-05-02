@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Progress } from 'flowbite-react';
+import { Badge, Button, Card, Progress, Spinner } from 'flowbite-react';
 import { useEffect, useState } from 'react';
 import { api, getEngines, getJobs, getProjects } from '../lib/api';
 import type { EngineStatus, Job, Project } from '../lib/types';
@@ -8,6 +8,7 @@ export function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [engines, setEngines] = useState<EngineStatus[]>([]);
   const [message, setMessage] = useState('');
+  const [installing, setInstalling] = useState<Record<string, boolean>>({});
 
   async function loadDashboard() {
     const [projectRows, jobRows, engineRows] = await Promise.all([getProjects(), getJobs(), getEngines()]);
@@ -25,6 +26,19 @@ export function Dashboard() {
     const response = await api.resetDemo();
     setMessage(`Demo ready: project ${response.project_id}, completed job ${response.job_id}.`);
     await loadDashboard();
+  }
+
+  async function handleInstall(name: string) {
+    setInstalling((prev) => ({ ...prev, [name]: true }));
+    try {
+      await api.installPackage(name);
+      const freshEngines = await getEngines();
+      setEngines(freshEngines);
+    } catch {
+      // error handled silently; user can check System Status for details
+    } finally {
+      setInstalling((prev) => ({ ...prev, [name]: false }));
+    }
   }
 
   const completed = jobs.filter((job) => job.status === 'complete').length;
@@ -88,17 +102,31 @@ export function Dashboard() {
         <Card>
           <h2 className="mb-3 text-xl font-semibold">System readiness</h2>
           <div className="grid gap-3 md:grid-cols-2">
-            {engines.map((engine) => (
-              <div key={engine.name} className="rounded-xl border border-gray-100 p-3 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{engine.name}</span>
-                  <Badge color={engine.status === 'available' ? 'success' : engine.status.startsWith('needs') ? 'warning' : 'gray'}>
-                    {engine.status}
-                  </Badge>
+            {engines.map((engine) => {
+              const canInstall = engine.installable && engine.status !== 'available';
+              return (
+                <div key={engine.name} className="rounded-xl border border-gray-100 p-3 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{engine.name}</span>
+                    <Badge color={engine.status === 'available' ? 'success' : engine.status.startsWith('needs') ? 'warning' : 'gray'}>
+                      {engine.status}
+                    </Badge>
+                  </div>
+                  <div className="mt-1 truncate text-xs text-gray-500">{engine.version || engine.notes || 'No version detected'}</div>
+                  {canInstall && (
+                    <Button
+                      size="xs"
+                      color="blue"
+                      className="mt-2"
+                      disabled={installing[engine.name]}
+                      onClick={() => handleInstall(engine.name)}
+                    >
+                      {installing[engine.name] ? <><Spinner size="xs" className="mr-2" /> Installing...</> : 'Install'}
+                    </Button>
+                  )}
                 </div>
-                <div className="mt-1 truncate text-xs text-gray-500">{engine.version || engine.notes || 'No version detected'}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {failed > 0 && <p className="mt-4 text-sm text-red-600">{failed} job(s) need review.</p>}
         </Card>

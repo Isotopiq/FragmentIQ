@@ -83,7 +83,16 @@ def create_job(session: Session, payload: JobCreate) -> Job:
 
 
 def run_mock_job_sync(job_id: int) -> None:
-    asyncio.run(run_mock_job(job_id))
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            pool.submit(asyncio.run, run_mock_job(job_id)).result()
+    else:
+        asyncio.run(run_mock_job(job_id))
 
 
 async def run_mock_job(job_id: int) -> None:
@@ -428,8 +437,25 @@ async def event_stream(job_id: int):
 def build_results_zip(job: Job) -> Path:
     directory = job_dir(job.id)
     if not any(directory.iterdir()):
-        write_mock_results(job.id)
+        _rebuild_artifacts_from_db(job)
     output = settings.results_dir / f"job_{job.id}.zip"
     if output.exists():
         output.unlink()
     return zip_paths([directory, log_path(job.id)], output)
+
+
+def _rebuild_artifacts_from_db(job: Job) -> None:
+    with Session(engine) as session:
+        features = result_rows(job.id, "features")
+        annotations = result_rows(job.id, "annotations")
+        statistics = result_rows(job.id, "statistics")
+        plots_rows = result_rows(job.id, "plots")
+        plots = plots_rows[0] if plots_rows else _plot_payload(features, statistics)
+
+        if not features:
+            write_mock_results(job.id)
+            return
+
+        db_job = session.get(Job, job.id)
+        if db_job:
+            _write_artifacts(db_job, features, annotations, statistics, plots)

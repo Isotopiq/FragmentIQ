@@ -67,6 +67,7 @@ export type EngineStatus = {
   status: string;
   version?: string;
   notes?: string;
+  installable?: boolean;
 };
 
 export type LibraryAsset = {

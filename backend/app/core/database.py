@@ -11,6 +11,7 @@ from app.models.domain import DatasetFile, Job, MetadataTable, Project, Workflow
 from app.services.workflows import WORKFLOW_PRESETS
 
 
+settings.ensure_directories()
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
