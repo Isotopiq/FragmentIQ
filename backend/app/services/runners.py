@@ -219,7 +219,9 @@ def run_dreams_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[s
 
 
 def run_matchms_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[str, Any]]]:
-    from app.services.matchms_runner import load_spectra, run_matchms_library_search
+    from app.services.mzxml_parser import _tolerant_load_spectra as load_query_spectra
+    from app.services.spectral_libraries import ensure_normalized_mgf
+    from app.services.spectral_search import _load_library_spectra, search_spectra_against_libraries
 
     query_paths = selected_input_paths(ctx, {"MGF", "MSP", "mzML", "mzXML"})
     if not query_paths:
@@ -227,17 +229,52 @@ def run_matchms_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[
     libs = selected_libraries(ctx)
     if not libs:
         raise RunnerConfigurationError("matchms library search requires a selected spectral library.")
-    query_spectra = []
+
+    query_spectra: list[dict[str, Any]] = []
     for p in query_paths:
-        query_spectra.extend(load_spectra(p))
-    library_spectra = load_spectra(_normalized_library_mgf(libs[0]))
+        try:
+            query_spectra.extend(load_query_spectra(p))
+        except Exception as exc:
+            raise RunnerConfigurationError(f"Failed to parse query spectra from {p.name}: {exc}") from exc
+
+    lib_path = Path(libs[0].path)
+    try:
+        cache_dir = Path("./data/libraries/.cache")
+        normalized_lib = ensure_normalized_mgf(lib_path, cache_dir)
+        library_spectra = _load_library_spectra(normalized_lib)
+    except Exception:
+        library_spectra = _load_library_spectra(lib_path)
+
     params = ctx.workflow.parameters if ctx.workflow else {}
-    rows = run_matchms_library_search(
+
+    # Prefer native matchms when installed; otherwise use the dependency-free simple cosine.
+    try:
+        from app.services.matchms_runner import load_spectra, run_matchms_library_search
+
+        matchms_query = []
+        for p in query_paths:
+            matchms_query.extend(load_spectra(p))
+        matchms_lib = load_spectra(_normalized_library_mgf(libs[0]))
+        rows = run_matchms_library_search(
+            matchms_query,
+            matchms_lib,
+            cosine_threshold=float(params.get("minimum_cosine", 0.7)),
+            min_matched_peaks=int(params.get("minimum_matched_peaks", 6)),
+            top_k=int(params.get("top_n", 5)),
+        )
+        return {"annotations": rows}
+    except Exception:
+        pass
+
+    rows = search_spectra_against_libraries(
         query_spectra,
-        library_spectra,
-        cosine_threshold=float(params.get("minimum_cosine", 0.7)),
+        engine_name="matchms",
+        library_ids=[libs[0].id],
+        threshold=float(params.get("minimum_cosine", 0.7)),
         min_matched_peaks=int(params.get("minimum_matched_peaks", 6)),
         top_k=int(params.get("top_n", 5)),
+        precursor_tolerance=float(params.get("precursor_tolerance", 0.01)),
+        mz_tolerance=float(params.get("mz_tolerance", 0.1)),
     )
     return {"annotations": rows}
 
@@ -457,7 +494,8 @@ def run_real_pipeline(context: RealRunContext) -> None:
     matchms_rows = [r for r in aggregated["annotations"] if r.get("annotation_source") == "matchms"]
     cfm_rows = [r for r in aggregated["annotations"] if r.get("annotation_source") == "cfm_id"]
 
-    if len({sirius_rows, ms2query_rows, dreams_rows, matchms_rows, cfm_rows}) > 1:
+    non_empty_sources = sum(1 for group in (sirius_rows, ms2query_rows, dreams_rows, matchms_rows, cfm_rows) if group)
+    if non_empty_sources > 1:
         consensus = merge_annotations(
             aggregated["features"],
             sirius_rows=sirius_rows or None,

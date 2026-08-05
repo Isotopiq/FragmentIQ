@@ -395,3 +395,78 @@ def search_unknown_spectrum(payload: dict[str, Any]) -> dict[str, Any]:
         },
         "candidates": final,
     }
+
+
+def search_spectra_against_libraries(
+    queries: list[dict[str, Any]],
+    engine_name: str,
+    library_ids: list[int],
+    threshold: float,
+    min_matched_peaks: int,
+    top_k: int,
+    precursor_tolerance: float,
+    mz_tolerance: float,
+) -> list[dict[str, Any]]:
+    """Search many query spectra against selected MGF/MSP libraries and return annotation rows."""
+    from sqlmodel import Session
+
+    from app.core.database import engine
+    from app.models.domain import LibraryAsset
+
+    annotations: list[dict[str, Any]] = []
+    with Session(engine) as session:
+        for library_id in library_ids:
+            asset = session.get(LibraryAsset, library_id)
+            if not asset:
+                continue
+            path = Path(asset.path)
+            if not path.exists():
+                continue
+            try:
+                library_spectra = _load_library_spectra(path)
+            except Exception:
+                continue
+            if not library_spectra:
+                continue
+
+            for query in queries:
+                if engine_name == "matchms":
+                    hits = _matchms_search(
+                        query,
+                        library_spectra,
+                        library_id,
+                        asset.name,
+                        threshold,
+                        min_matched_peaks,
+                        top_k,
+                        precursor_tolerance,
+                        mz_tolerance,
+                    )
+                else:
+                    hits = _simple_search(
+                        query,
+                        library_spectra,
+                        library_id,
+                        asset.name,
+                        threshold,
+                        min_matched_peaks,
+                        top_k,
+                        precursor_tolerance,
+                        mz_tolerance,
+                    )
+                for hit in hits:
+                    annotations.append({
+                        "feature_id": query.get("feature_id", "unknown"),
+                        "mz": query.get("precursor_mz"),
+                        "rt": query.get("retention_time"),
+                        "candidate_name": hit["candidate_name"],
+                        "formula": hit.get("formula"),
+                        "smiles": hit.get("smiles"),
+                        "inchikey": hit.get("inchikey"),
+                        "matchms_cosine": hit["score"],
+                        "matched_peaks": hit["matched_peaks"],
+                        "annotation_source": hit["annotation_source"],
+                        "library_id": library_id,
+                        "library_name": asset.name,
+                    })
+    return annotations

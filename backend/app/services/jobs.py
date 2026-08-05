@@ -439,6 +439,8 @@ def retry_job(session: Session, job_id: int) -> Job:
             workflow_id=old_job.workflow_id,
             name=f"Retry of {old_job.name}",
             job_type=old_job.job_type,
+            library_ids=old_job.library_ids,
+            input_file_ids=old_job.input_file_ids,
             parameters=old_job.parameters,
         ),
     )

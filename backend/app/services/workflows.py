@@ -168,13 +168,15 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
         "id": "matchms-library-search",
         "name": "matchms cosine library search",
         "category": "ML-MS/MS",
-        "description": "Search query spectra against an MGF/MSP spectral library with modified cosine.",
+        "description": "Search query spectra from uploaded MGF/MSP/mzXML/mzML files against an MGF/MSP spectral library with modified cosine.",
         "engines": ["matchms"],
         "parameters": {
             "ion_mode": "positive",
             "minimum_cosine": 0.7,
             "minimum_matched_peaks": 6,
             "top_n": 5,
+            "precursor_tolerance": 0.01,
+            "mz_tolerance": 0.1,
         },
     },
     {

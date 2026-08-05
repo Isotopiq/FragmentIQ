@@ -15,16 +15,23 @@ export function WorkflowBuilder() {
   const [files, setFiles] = useState<DatasetFile[]>([]);
   const [libraries, setLibraries] = useState<LibraryAsset[]>([]);
   const [message, setMessage] = useState('');
+  const [parameters, setParameters] = useState<Record<string, unknown>>({});
 
   const selectedPreset = presets.find((preset) => preset.id === presetId) || presets[0];
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const presetParam = params.get('preset');
     Promise.all([listProjects(), fetchPresets(), api.libraries()]).then(([projectData, presetData, libraryData]) => {
       setProjects(projectData);
       setPresets(presetData);
       setLibraries(libraryData);
       if (projectData[0]) setProjectId(projectData[0].id);
-      if (presetData[0]) setPresetId(presetData[0].id);
+      if (presetParam && presetData.find((p) => p.id === presetParam)) {
+        setPresetId(presetParam);
+      } else if (presetData[0]) {
+        setPresetId(presetData[0].id);
+      }
     });
   }, []);
 
@@ -35,6 +42,14 @@ export function WorkflowBuilder() {
     }
     api.projectFiles(Number(projectId)).then(setFiles).catch(() => setFiles([]));
   }, [projectId]);
+
+  useEffect(() => {
+    if (selectedPreset?.parameters) {
+      setParameters({ ...selectedPreset.parameters });
+    } else {
+      setParameters({});
+    }
+  }, [selectedPreset]);
 
   async function ensureProject() {
     if (projectId) return Number(projectId);
@@ -51,6 +66,10 @@ export function WorkflowBuilder() {
     };
   }
 
+  function updateParameter(key: string, value: unknown) {
+    setParameters((current) => ({ ...current, [key]: value }));
+  }
+
   async function submitWorkflow() {
     const targetProject = await ensureProject();
     const needsMzbatch = selectedPreset?.engines?.includes('mzmine');
@@ -63,9 +82,8 @@ export function WorkflowBuilder() {
       library_ids: libraryIds,
       input_file_ids: inputFileIds,
       parameters: {
-        ...(selectedPreset?.parameters || {}),
+        ...parameters,
         preserve_mzbatch: true,
-        mock_execution: true,
       },
     });
     const job = await createJob({
@@ -77,7 +95,27 @@ export function WorkflowBuilder() {
       input_file_ids: inputFileIds,
       parameters: workflow.parameters,
     });
-    setMessage(`Submitted mock job ${job.id}. Open Job Monitor to follow logs and results.`);
+    setMessage(`Submitted job ${job.id}. Open Job Monitor to follow logs and results.`);
+  }
+
+  function renderParameterValue(value: unknown): string {
+    if (typeof value === 'boolean') return String(value);
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  function parseParameterValue(raw: string, original: unknown): unknown {
+    if (typeof original === 'number') return raw === '' ? 0 : Number(raw);
+    if (typeof original === 'boolean') return raw.toLowerCase() === 'true';
+    if (typeof original === 'object' && original !== null) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
+    }
+    return raw;
   }
 
   return (
@@ -125,13 +163,16 @@ export function WorkflowBuilder() {
               ))}
             </div>
           </div>
-          <ToggleSwitch checked={advanced} label="Show schema-driven advanced parameters" onChange={setAdvanced} />
+          <ToggleSwitch checked={advanced} label="Show editable advanced parameters" onChange={setAdvanced} />
           {advanced && (
             <div className="grid gap-4 md:grid-cols-3">
-              {Object.entries(selectedPreset?.parameters || {}).map(([key, value]) => (
+              {Object.entries(parameters).map(([key, value]) => (
                 <div key={key}>
                   <Label>{key.split('_').join(' ')}</Label>
-                  <TextInput defaultValue={String(value)} />
+                  <TextInput
+                    value={renderParameterValue(value)}
+                    onChange={(event) => updateParameter(key, parseParameterValue(event.target.value, value))}
+                  />
                 </div>
               ))}
             </div>
