@@ -512,11 +512,11 @@ def system_engines() -> dict[str, Any]:
 def list_installable_packages() -> dict[str, Any]:
     engines = detect_engines()
     packages = []
-    for name, pip_name in INSTALLABLE_PACKAGES.items():
+    for name, spec in INSTALLABLE_PACKAGES.items():
         engine_info = engines.get(name, {})
         packages.append({
             "name": name,
-            "pip_name": pip_name,
+            "pip_name": spec.pip_name,
             "status": engine_info.get("status", "unknown"),
             "version": engine_info.get("version"),
         })
