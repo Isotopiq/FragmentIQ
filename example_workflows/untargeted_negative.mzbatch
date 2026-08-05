@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<batch mzmine_version="placeholder">
+  <batchstep method="Raw data import">
+    <parameter name="fileNames">{UPLOADS}</parameter>
+  </batchstep>
+  <batchstep method="Mass detection">
+    <parameter name="MS level">1</parameter>
+    <parameter name="Noise level">800</parameter>
+  </batchstep>
+  <batchstep method="Export feature table">
+    <parameter name="filename">{RESULTS}/feature_table_negative.csv</parameter>
+  </batchstep>
+</batch>
