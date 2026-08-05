@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlmodel import Session, select
 
@@ -383,7 +383,12 @@ def job_download(job_id: int, session: Session = Depends(get_session)) -> FileRe
 
 
 @router.post("/libraries", response_model=LibraryAsset)
-async def upload_library(name: str, file: UploadFile = File(...), source: str = "user", session: Session = Depends(get_session)) -> LibraryAsset:
+async def upload_library(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    source: str = Form("user"),
+    session: Session = Depends(get_session),
+) -> LibraryAsset:
     filename = sanitize_filename(file.filename or "library.mgf")
     destination = safe_child(settings.libraries_dir, filename)
     await save_upload(file, destination)
@@ -531,13 +536,16 @@ def install_system_package(payload: dict[str, str]) -> dict[str, Any]:
 
 
 @router.post("/system/sirius/test")
-def sirius_test_connection_endpoint(payload: dict[str, str] | None = None) -> dict[str, Any]:
+def sirius_test_connection_endpoint(payload: dict[str, Any] | None = None) -> dict[str, Any]:
     payload = payload or {}
     username = payload.get("username") or settings.sirius_username
     password = payload.get("password") or settings.sirius_password
     url = payload.get("url") or settings.sirius_api_url or None
     sirius_path = payload.get("sirius_path") or settings.sirius_binary
-    accept_terms = (payload.get("accept_terms") or str(settings.sirius_accept_terms)).lower() in ("true", "1", "yes")
+    raw_accept = payload.get("accept_terms")
+    if raw_accept is None:
+        raw_accept = settings.sirius_accept_terms
+    accept_terms = str(raw_accept).lower() in ("true", "1", "yes")
     if not username or not password:
         raise HTTPException(status_code=400, detail="SIRIUS username and password are required")
     return test_sirius_connection(sirius_path, username, password, url=url, accept_terms=accept_terms)
