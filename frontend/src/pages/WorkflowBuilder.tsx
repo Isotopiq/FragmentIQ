@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Card, Label, Select, Textarea, TextInput, ToggleSwitch } from 'flowbite-react';
+import { Alert, Button, Card, Label, Select, Textarea, TextInput } from 'flowbite-react';
 import { createJob, createProject, createWorkflow, fetchPresets, listProjects, api } from '../lib/api';
 import type { DatasetFile, LibraryAsset, Project, WorkflowPreset } from '../lib/types';
 
@@ -40,7 +40,11 @@ export function WorkflowBuilder() {
       setFiles([]);
       return;
     }
-    api.projectFiles(Number(projectId)).then(setFiles).catch(() => setFiles([]));
+    api.projectFiles(Number(projectId)).then((projectFiles) => {
+      setFiles(projectFiles);
+      const mzxml = projectFiles.find((f) => f.file_type.toLowerCase() === 'mzxml');
+      setInputFileIds(mzxml ? [mzxml.id] : projectFiles.slice(0, 1).map((f) => f.id));
+    }).catch(() => setFiles([]));
   }, [projectId]);
 
   useEffect(() => {
@@ -50,6 +54,12 @@ export function WorkflowBuilder() {
       setParameters({});
     }
   }, [selectedPreset]);
+
+  useEffect(() => {
+    if (libraries.length && libraryIds.length === 0) {
+      setLibraryIds([libraries[0].id]);
+    }
+  }, [libraries]);
 
   async function ensureProject() {
     if (projectId) return Number(projectId);
@@ -71,31 +81,37 @@ export function WorkflowBuilder() {
   }
 
   async function submitWorkflow() {
-    const targetProject = await ensureProject();
-    const needsMzbatch = selectedPreset?.engines?.includes('mzmine');
-    const workflow = await createWorkflow({
-      project_id: targetProject,
-      name: selectedPreset?.name || 'Custom workflow',
-      engine: selectedPreset?.engines?.join('+') || 'pipeline',
-      preset_key: selectedPreset?.id,
-      mzbatch_text: needsMzbatch ? mzbatchText : undefined,
-      library_ids: libraryIds,
-      input_file_ids: inputFileIds,
-      parameters: {
-        ...parameters,
-        preserve_mzbatch: true,
-      },
-    });
-    const job = await createJob({
-      project_id: targetProject,
-      workflow_id: workflow.id,
-      name: `${workflow.name} run`,
-      job_type: selectedPreset?.engines?.length === 1 ? selectedPreset.engines[0] : 'full_pipeline',
-      library_ids: libraryIds,
-      input_file_ids: inputFileIds,
-      parameters: workflow.parameters,
-    });
-    setMessage(`Submitted job ${job.id}. Open Job Monitor to follow logs and results.`);
+    setMessage('Submitting...');
+    try {
+      const targetProject = await ensureProject();
+      const needsMzbatch = selectedPreset?.engines?.includes('mzmine');
+      const workflow = await createWorkflow({
+        project_id: targetProject,
+        name: selectedPreset?.name || 'Custom workflow',
+        engine: selectedPreset?.engines?.join('+') || 'pipeline',
+        preset_key: selectedPreset?.id,
+        mzbatch_text: needsMzbatch ? mzbatchText : undefined,
+        library_ids: libraryIds,
+        input_file_ids: inputFileIds,
+        parameters: {
+          ...parameters,
+          preserve_mzbatch: true,
+          minimum_matched_peaks: typeof parameters.minimum_matched_peaks === 'number' ? parameters.minimum_matched_peaks : 3,
+        },
+      });
+      const job = await createJob({
+        project_id: targetProject,
+        workflow_id: workflow.id,
+        name: `${workflow.name} run`,
+        job_type: selectedPreset?.engines?.length === 1 ? selectedPreset.engines[0] : 'full_pipeline',
+        library_ids: libraryIds,
+        input_file_ids: inputFileIds,
+        parameters: workflow.parameters,
+      });
+      setMessage(`Submitted job ${job.id}. Open Job Monitor to follow logs and results.`);
+    } catch (error: any) {
+      setMessage(`Error: ${error?.message || String(error)}`);
+    }
   }
 
   function renderParameterValue(value: unknown): string {
@@ -163,7 +179,15 @@ export function WorkflowBuilder() {
               ))}
             </div>
           </div>
-          <ToggleSwitch checked={advanced} label="Show editable advanced parameters" onChange={setAdvanced} />
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={advanced}
+              onChange={(event) => setAdvanced(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+            />
+            Show editable advanced parameters
+          </label>
           {advanced && (
             <div className="grid gap-4 md:grid-cols-3">
               {Object.entries(parameters).map(([key, value]) => (
@@ -181,6 +205,7 @@ export function WorkflowBuilder() {
             <Label>Input files {selectedPreset?.engines?.includes('mzmine') ? '(mzML/mzXML/MGF/MSP)' : '(MGF/MSP/mzXML/mzML)'}</Label>
             <select
               multiple
+              value={inputFileIds.map(String)}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
               size={Math.min(5, Math.max(files.length, 2))}
               onChange={selectMultiple(setInputFileIds)}
@@ -197,6 +222,7 @@ export function WorkflowBuilder() {
             <Label>Spectral libraries (MGF/MSP)</Label>
             <select
               multiple
+              value={libraryIds.map(String)}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
               size={Math.min(5, Math.max(libraries.length, 2))}
               onChange={selectMultiple(setLibraryIds)}
@@ -214,7 +240,9 @@ export function WorkflowBuilder() {
               <Textarea rows={8} value={mzbatchText} onChange={(event) => setMzbatchText(event.target.value)} />
             </div>
           )}
-          <Button onClick={submitWorkflow}>Save workflow and submit job</Button>
+          <Button type="button" color="blue" onClick={submitWorkflow}>
+            Save workflow and submit job
+          </Button>
         </Card>
         <Card>
           <h2 className="text-lg font-semibold text-slate-900">Batch-mode guardrails</h2>

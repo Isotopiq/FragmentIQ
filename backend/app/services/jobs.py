@@ -57,17 +57,18 @@ def create_job(session: Session, payload: JobCreate) -> Job:
     if not workflow:
         raise ValueError("Workflow not found")
     command_args = ["mock-runner", "--job-type", payload.job_type] if settings.mock_execution else ["fragmentiq-runner", payload.job_type]
+    merged_parameters = {**(workflow.parameters or {}), **(payload.parameters or {})}
     job = Job(
         project_id=payload.project_id,
         workflow_id=workflow_id,
         name=payload.name,
         job_type=payload.job_type,
-        library_ids=payload.library_ids,
-        input_file_ids=payload.input_file_ids,
+        library_ids=payload.library_ids or workflow.library_ids or [],
+        input_file_ids=payload.input_file_ids or workflow.input_file_ids or [],
         status="queued",
         progress=0,
         stage="queued",
-        parameters=payload.parameters,
+        parameters=merged_parameters,
         command_args=command_args,
         software_versions=detect_engines(),
     )

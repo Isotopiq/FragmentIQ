@@ -187,7 +187,8 @@ def run_ms2query_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict
         library_dir = _normalized_library_mgf(libs[0]).parent
     else:
         library_dir = settings.ms2query_library_dir
-    runner = Ms2QueryRunner(library_dir=library_dir, ion_mode=ctx.workflow.parameters.get("ion_mode", "positive") if ctx.workflow else "positive")
+    params = ctx.job.parameters or ctx.workflow.parameters or {}
+    runner = Ms2QueryRunner(library_dir=library_dir, ion_mode=params.get("ion_mode", "positive"))
     query_dir = run_dir / "ms2query_input"
     query_dir.mkdir(parents=True, exist_ok=True)
     for p in query_paths:
@@ -209,9 +210,10 @@ def run_dreams_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[s
     libs = selected_libraries(ctx)
     if not libs:
         raise RunnerConfigurationError("DreaMS library search requires a selected spectral library.")
+    params = ctx.job.parameters or ctx.workflow.parameters or {}
     runner = DreamsRunner(cache_dir=settings.dreams_cache_dir)
     library_mgf = _normalized_library_mgf(libs[0])
-    top_k = ctx.workflow.parameters.get("top_n", 5) if ctx.workflow else 5
+    top_k = params.get("top_n", 5)
     all_rows: list[dict[str, Any]] = []
     for query in query_paths:
         all_rows.extend(runner.library_search(query, library_mgf, top_k=top_k))
@@ -245,7 +247,7 @@ def run_matchms_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[
     except Exception:
         library_spectra = _load_library_spectra(lib_path)
 
-    params = ctx.workflow.parameters if ctx.workflow else {}
+    params = ctx.job.parameters or ctx.workflow.parameters or {}
 
     # Prefer native matchms when installed; otherwise use the dependency-free simple cosine.
     try:

@@ -44,7 +44,8 @@ def reset_demo() -> dict[str, Any]:
     return {
         "status": "seeded",
         "project_id": seeded.get("project_id"),
-        "job_id": seeded.get("job_id"),
+        "job_id": seeded.get("pipeline_job_id") or seeded.get("job_id"),
+        "matchms_job_id": seeded.get("matchms_job_id"),
     }
 
 
@@ -321,7 +322,18 @@ def retry_job(job_id: int, session: Session = Depends(get_session)) -> Job:
     old = session.get(Job, job_id)
     if not old:
         raise HTTPException(status_code=404, detail="Job not found")
-    return create_job(session, JobCreate(project_id=old.project_id, workflow_id=old.workflow_id, name=f"Retry of {old.name}", job_type=old.job_type, parameters=old.parameters))
+    return create_job(
+        session,
+        JobCreate(
+            project_id=old.project_id,
+            workflow_id=old.workflow_id,
+            name=f"Retry of {old.name}",
+            job_type=old.job_type,
+            library_ids=old.library_ids or [],
+            input_file_ids=old.input_file_ids or [],
+            parameters=old.parameters or {},
+        ),
+    )
 
 
 @router.get("/jobs/{job_id}/logs")

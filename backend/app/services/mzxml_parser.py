@@ -7,18 +7,21 @@ from pathlib import Path
 from typing import Any
 
 
-def _decode_peaks(encoded: str, compression: str | None, precision: int) -> list[tuple[float, float]]:
+def _decode_peaks(encoded: str, compression: str | None, precision: int, byte_order: str | None = None) -> list[tuple[float, float]]:
     """Decode mzXML <peaks> base64 into (m/z, intensity) pairs."""
     raw = base64.b64decode(encoded)
     if compression == "zlib":
         raw = zlib.decompress(raw)
 
     if precision == 32:
-        fmt = "<f"
+        base = "f"
         width = 4
     else:
-        fmt = "<d"
+        base = "d"
         width = 8
+
+    endian = ">" if byte_order and byte_order.lower() in {"network", "big"} else "<"
+    fmt = f"{endian}{base}"
 
     values = []
     for i in range(0, len(raw), width):
@@ -121,8 +124,9 @@ def _parse_mzxml(path: Path) -> list[dict[str, Any]]:
             continue
         compression = peaks.get("compressionType")
         precision = int(peaks.get("precision", "32"))
+        byte_order = peaks.get("byteOrder")
         try:
-            pairs = _decode_peaks(peaks.text.strip(), compression, precision)
+            pairs = _decode_peaks(peaks.text.strip(), compression, precision, byte_order)
         except Exception:
             continue
         if not pairs:

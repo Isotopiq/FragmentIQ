@@ -173,7 +173,7 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
         "parameters": {
             "ion_mode": "positive",
             "minimum_cosine": 0.7,
-            "minimum_matched_peaks": 6,
+            "minimum_matched_peaks": 3,
             "top_n": 5,
             "precursor_tolerance": 0.01,
             "mz_tolerance": 0.1,
