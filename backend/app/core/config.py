@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     mock_execution: bool = True
     mock_job_step_seconds: float = 0.05
     job_timeout_seconds: int = 7200
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:3001,http://localhost:8080"
 
     # Engine binaries / execution flags
     mzmine_binary: str = "mzmine"

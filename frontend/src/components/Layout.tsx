@@ -53,8 +53,8 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
       >
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-indigo-600 p-2 text-white shadow-lg shadow-indigo-600/20">
-              <span className="block h-7 w-7 text-center text-xl leading-7">⚗</span>
+            <div className="flex h-10 w-10 items-center justify-center">
+              <img src="/logo.png" alt="Isotopiq" className="h-9 w-auto" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">FragmentIQ</h1>
@@ -95,6 +95,7 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
+              <img src="/logo.png" alt="Isotopiq" className="h-8 w-auto" />
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500">Project context</p>
                 <select
