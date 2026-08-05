@@ -113,3 +113,29 @@ export type SiriusCredentials = {
   accept_terms?: boolean;
 };
 
+export type SpectralHit = {
+  rank: number;
+  candidate_name: string;
+  formula?: string;
+  smiles?: string;
+  inchikey?: string;
+  precursor_mz?: number;
+  score: number;
+  matched_peaks: number;
+  annotation_source: string;
+  library_id: number;
+  library_name: string;
+  query_peaks: [number, number][];
+  reference_peaks: [number, number][];
+};
+
+export type SpectralSearchResponse = {
+  engine: string;
+  query: {
+    precursor_mz?: number;
+    num_peaks: number;
+    peaks: [number, number][];
+  };
+  candidates: SpectralHit[];
+};
+

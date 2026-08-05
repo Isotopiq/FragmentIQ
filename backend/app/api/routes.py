@@ -25,6 +25,7 @@ from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, install_p
 from app.services.jobs import build_results_zip, create_job, event_stream, result_rows
 from app.services.parsers import parse_metadata_text, validate_metadata_rows
 from app.services.spectral_libraries import index_spectral_library
+from app.services.spectral_search import search_unknown_spectrum
 from app.services.sirius_api import test_sirius_connection
 from app.services.workflows import WORKFLOW_PRESETS, validate_workflow_payload
 
@@ -533,6 +534,16 @@ def install_system_package(payload: dict[str, str]) -> dict[str, Any]:
             detail=f"Package '{package_name}' is not installable. Allowed: {', '.join(sorted(INSTALLABLE_PACKAGES))}",
         )
     return install_package(package_name)
+
+
+@router.post("/spectral-search")
+def spectral_search_endpoint(payload: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return search_unknown_spectrum(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Spectral search failed: {exc}") from exc
 
 
 @router.post("/system/sirius/test")

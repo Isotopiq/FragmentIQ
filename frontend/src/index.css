@@ -11,3 +11,10 @@ body {
 .plot-container .svg-container {
   border-radius: 1rem;
 }
+
+@media (min-width: 1024px) {
+  .sidebar-desktop {
+    display: block !important;
+    translate: 0 0 !important;
+  }
+}

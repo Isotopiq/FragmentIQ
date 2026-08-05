@@ -15,6 +15,7 @@ const nav = [
   { key: 'network', label: 'Molecular Network', icon: '◇' },
   { key: 'libraries', label: 'Libraries', icon: '◫' },
   { key: 'models', label: 'Models & Training', icon: 'M' },
+  { key: 'spectral', label: 'MS2 Identification', icon: '⚡' },
   { key: 'sirius', label: 'SIRIUS Settings', icon: 'S' },
   { key: 'system', label: 'System Status', icon: '✓' },
 ]
@@ -48,8 +49,8 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
       )}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white p-5 shadow-sm transition-transform duration-200 dark:border-slate-800 dark:bg-slate-900 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}
+          sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'
+        } sidebar-desktop`}
       >
         <div className="mb-8">
           <div className="flex items-center gap-3">

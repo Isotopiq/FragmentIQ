@@ -7,6 +7,7 @@ import type {
   ModelAsset,
   Project,
   SiriusCredentials,
+  SpectralSearchResponse,
   Workflow,
   WorkflowPreset
 } from './types'
@@ -116,6 +117,7 @@ export const api = {
     request<Job>('/models/train', { method: 'POST', body: JSON.stringify(payload) }),
   testSirius: (payload: SiriusCredentials) => request<{ status: string; account?: unknown; message?: string }>('/system/sirius/test', { method: 'POST', body: JSON.stringify(payload) }),
   consensus: (jobId: number) => request<{ rows: Record<string, unknown>[] }>(`/jobs/${jobId}/results/consensus`),
+  spectralSearch: (payload: Record<string, unknown>) => request<SpectralSearchResponse>('/spectral-search', { method: 'POST', body: JSON.stringify(payload) }),
   uploadFileSingle: (projectId: number, file: File) => {
     const form = new FormData()
     form.append('files', file)
