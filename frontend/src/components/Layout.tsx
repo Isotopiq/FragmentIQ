@@ -54,9 +54,11 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
       >
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center">
-              <img src="/logo.png" alt="Isotopiq" className="h-9 w-auto" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Isotopiq"
+              className="h-8 max-w-[120px] object-contain"
+            />
             <div>
               <h1 className="text-xl font-bold tracking-tight">FragmentIQ</h1>
               <p className="text-xs text-slate-500">LC-MS/MS annotation platform</p>
@@ -96,7 +98,11 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <img src="/logo.png" alt="Isotopiq" className="h-8 w-auto" />
+              <img
+                src="/logo.png"
+                alt="Isotopiq"
+                className="h-7 max-w-[100px] object-contain"
+              />
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500">Project context</p>
                 <select
