@@ -11,6 +11,8 @@ import Visualizations from "./pages/Visualizations";
 import Network from "./pages/Network";
 import Statistics from "./pages/Statistics";
 import Libraries from "./pages/Libraries";
+import Models from "./pages/Models";
+import SiriusSettings from "./pages/SiriusSettings";
 import SystemStatus from "./pages/SystemStatus";
 import { api } from "./lib/api";
 import { Project } from "./lib/types";
@@ -49,6 +51,8 @@ export default function App() {
       {page === "statistics" && <Statistics />}
       {page === "network" && <Network />}
       {page === "libraries" && <Libraries />}
+      {page === "models" && <Models />}
+      {page === "sirius" && <SiriusSettings />}
       {page === "system" && <SystemStatus />}
     </Layout>
   );

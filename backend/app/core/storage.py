@@ -42,6 +42,10 @@ def detect_file_kind(filename: str) -> str:
     return ALLOWED_EXTENSIONS.get(Path(filename).suffix.lower(), "unknown")
 
 
+def is_spectral_library(path: Path) -> bool:
+    return path.suffix.lower() in {".mgf", ".msp"}
+
+
 def safe_child(base: Path, *parts: str) -> Path:
     base.mkdir(parents=True, exist_ok=True)
     base_resolved = base.resolve()

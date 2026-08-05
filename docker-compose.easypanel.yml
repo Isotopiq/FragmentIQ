@@ -1,0 +1,42 @@
+# Easypanel Docker Compose deployment template for FragmentIQ.
+# Deploy this file directly in Easypanel (or docker compose -f docker-compose.easypanel.yml up -d).
+# The frontend nginx image proxies /api to the backend service, so only port 80 needs to be exposed.
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite:////app/data/database/fragmentiq.db
+      STORAGE_ROOT: /app/data
+    volumes:
+      - fragmentiq-data:/app/data
+      - ./example_workflows:/app/example_workflows:ro
+    expose:
+      - 8000
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: /api
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  fragmentiq-data:

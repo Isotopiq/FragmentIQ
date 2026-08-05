@@ -45,6 +45,9 @@ INSTALLABLE_PACKAGES: dict[str, str] = {
     "ms2query": "ms2query",
     "spec2vec": "spec2vec",
     "rdkit": "rdkit",
+    "cfm-id": "cfm-id",
+    "py-sirius-ms": "git+https://github.com/sirius-ms/sirius-client-openAPI.git#subdirectory=client-api_python/generated",
+    "dreams": "git+https://github.com/pluskal-lab/DreaMS.git",
 }
 
 _EXTRA_DEPS: dict[str, list[str]] = {
@@ -115,12 +118,15 @@ def detect_engines() -> dict[str, Any]:
             **command_status(settings.sirius_binary, ["--version"]),
             "notes": "SIRIUS login/license configuration is server-side only.",
         },
+        "py-sirius-ms": {**package_status("PySirius"), "installable": True},
         "matchms": {**package_status("matchms"), "installable": True},
         "ms2deepscore": {**package_status("ms2deepscore"), "installable": True},
         "ms2query": {**package_status("ms2query"), "installable": True},
-        "dreams": package_status("dreams"),
+        "dreams": {**package_status("dreams"), "installable": True},
         "spec2vec": {**package_status("spec2vec"), "installable": True},
         "rdkit": {**package_status("rdkit"), "installable": True},
+        "cfm-predict": {**command_status(settings.cfm_binary, ["--help"]), "installable": True},
+        "cfm-id": {**command_status(settings.cfm_id_binary, ["--help"]), "installable": True},
         "models": _asset_status(settings.models_dir, "needs_model"),
         "libraries": _asset_status(settings.libraries_dir, "needs_library"),
     }

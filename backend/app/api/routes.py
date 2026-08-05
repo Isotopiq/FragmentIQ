@@ -24,6 +24,8 @@ from app.models.domain import DatasetFile, Job, JobCreate, JobLog, LibraryAsset,
 from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, install_package
 from app.services.jobs import build_results_zip, create_job, event_stream, result_rows
 from app.services.parsers import parse_metadata_text, validate_metadata_rows
+from app.services.spectral_libraries import index_spectral_library
+from app.services.sirius_api import test_sirius_connection
 from app.services.workflows import WORKFLOW_PRESETS, validate_workflow_payload
 
 router = APIRouter()
@@ -223,8 +225,13 @@ def create_workflow(payload: Workflow, session: Session = Depends(get_session)) 
     if payload.project_id and not session.get(Project, payload.project_id):
         raise HTTPException(status_code=404, detail="Project not found")
     payload.id = None
-    warnings = validate_workflow_payload({"parameters": payload.parameters, "mzbatch_text": payload.mzbatch_text})
-    payload.parameters = {**payload.parameters, "validation_warnings": warnings}
+    workflow_warnings = validate_workflow_payload({
+        "parameters": payload.parameters,
+        "mzbatch_text": payload.mzbatch_text,
+        "input_file_ids": payload.input_file_ids,
+        "engines": payload.parameters.get("engines", []),
+    })
+    payload.validation_warnings = workflow_warnings
     session.add(payload)
     session.commit()
     session.refresh(payload)
@@ -248,6 +255,8 @@ def update_workflow(workflow_id: int, payload: Workflow, session: Session = Depe
     workflow.engine = payload.engine
     workflow.preset_key = payload.preset_key
     workflow.mzbatch_text = payload.mzbatch_text
+    workflow.library_ids = payload.library_ids
+    workflow.input_file_ids = payload.input_file_ids
     workflow.parameters = payload.parameters
     session.add(workflow)
     session.commit()
@@ -260,7 +269,12 @@ def validate_workflow(workflow_id: int, session: Session = Depends(get_session))
     workflow = session.get(Workflow, workflow_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    warnings = validate_workflow_payload({"parameters": workflow.parameters, "mzbatch_text": workflow.mzbatch_text})
+    warnings = validate_workflow_payload({
+        "parameters": workflow.parameters,
+        "mzbatch_text": workflow.mzbatch_text,
+        "input_file_ids": workflow.input_file_ids,
+        "engines": workflow.parameters.get("engines", []),
+    })
     return {"valid": not warnings, "warnings": warnings}
 
 
@@ -347,6 +361,12 @@ def job_plots(job_id: int) -> dict[str, Any]:
     return {"features": features[:200], "statistics": stats[:200]}
 
 
+@router.get("/jobs/{job_id}/results/consensus")
+def job_consensus(job_id: int) -> dict[str, Any]:
+    rows = result_rows(job_id, "annotations")
+    return {"rows": rows, "columns": list(rows[0].keys()) if rows else []}
+
+
 @router.get("/jobs/{job_id}/results/network")
 def job_network(job_id: int) -> dict[str, Any]:
     rows = result_rows(job_id, "network")
@@ -395,7 +415,9 @@ def index_library(library_id: int, session: Session = Depends(get_session)) -> L
     asset = session.get(LibraryAsset, library_id)
     if not asset:
         raise HTTPException(status_code=404, detail="Library not found")
+    meta = index_spectral_library(asset)
     asset.indexed = True
+    asset.supported_engines = sorted(set(asset.supported_engines + ["matchms", "ms2query", "dreams", "sirius"]))
     session.add(asset)
     session.commit()
     session.refresh(asset)
@@ -417,6 +439,40 @@ async def upload_model(name: str, engine: str, file: UploadFile = File(...), ver
 @router.get("/models", response_model=list[ModelAsset])
 def list_models(session: Session = Depends(get_session)) -> list[ModelAsset]:
     return session.exec(select(ModelAsset).order_by(ModelAsset.created_at.desc())).all()
+
+
+@router.post("/models/{model_id}/default")
+def set_default_model(model_id: int, session: Session = Depends(get_session)) -> ModelAsset:
+    asset = session.get(ModelAsset, model_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Model not found")
+    for other in session.exec(select(ModelAsset).where(ModelAsset.engine == asset.engine)).all():
+        other.is_default = False
+        session.add(other)
+    asset.is_default = True
+    session.add(asset)
+    session.commit()
+    session.refresh(asset)
+    return asset
+
+
+@router.post("/models/train")
+def submit_model_training_job(payload: dict[str, Any], session: Session = Depends(get_session)) -> Job:
+    from app.models.domain import JobCreate
+    project_id = int(payload["project_id"])
+    if not session.get(Project, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    params = payload.get("parameters", {})
+    params["engine"] = payload.get("engine", params.get("engine"))
+    params["training_file_id"] = payload.get("training_file_id")
+    params["base_model_id"] = payload.get("base_model_id")
+    job_payload = JobCreate(
+        project_id=project_id,
+        name=payload.get("name", f"Train {params.get('engine', 'model')}"),
+        job_type="train_model",
+        parameters=params,
+    )
+    return create_job(session, job_payload)
 
 
 @router.delete("/models/{model_id}")
@@ -472,3 +528,16 @@ def install_system_package(payload: dict[str, str]) -> dict[str, Any]:
             detail=f"Package '{package_name}' is not installable. Allowed: {', '.join(sorted(INSTALLABLE_PACKAGES))}",
         )
     return install_package(package_name)
+
+
+@router.post("/system/sirius/test")
+def sirius_test_connection_endpoint(payload: dict[str, str] | None = None) -> dict[str, Any]:
+    payload = payload or {}
+    username = payload.get("username") or settings.sirius_username
+    password = payload.get("password") or settings.sirius_password
+    url = payload.get("url") or settings.sirius_api_url or None
+    sirius_path = payload.get("sirius_path") or settings.sirius_binary
+    accept_terms = (payload.get("accept_terms") or str(settings.sirius_accept_terms)).lower() in ("true", "1", "yes")
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="SIRIUS username and password are required")
+    return test_sirius_connection(sirius_path, username, password, url=url, accept_terms=accept_terms)

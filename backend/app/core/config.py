@@ -14,9 +14,28 @@ class Settings(BaseSettings):
     mock_job_step_seconds: float = 0.05
     job_timeout_seconds: int = 7200
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
+
+    # Engine binaries / execution flags
     mzmine_binary: str = "mzmine"
     mzmine_batch_flag: str = "-batch"
+    mzmine_memory_mode: str = "none"
+    mzmine_temp_dir: Path = Path("/tmp/mzmine")
+
     sirius_binary: str = "sirius"
+    sirius_username: str = ""
+    sirius_password: str = ""
+    sirius_api_url: str = ""
+    sirius_use_api: bool = False
+    sirius_accept_terms: bool = False
+
+    cfm_binary: str = "cfm-predict"
+    cfm_train_binary: str = "cfm-train"
+    cfm_id_binary: str = "cfm-id"
+
+    # Engine asset directories
+    ms2query_library_dir: Path = Path("./data/libraries/ms2query")
+    dreams_cache_dir: Path = Path("./data/models/dreams")
+    matchms_top_k: int = 5
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -80,6 +99,8 @@ class Settings(BaseSettings):
             self.workflow_configs_dir,
             self.metadata_dir,
             self.reports_dir,
+            self.ms2query_library_dir,
+            self.dreams_cache_dir,
         ]:
             path.mkdir(parents=True, exist_ok=True)
 

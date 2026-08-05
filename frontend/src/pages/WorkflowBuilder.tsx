@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Label, Select, Textarea, TextInput, ToggleSwitch } from 'flowbite-react';
-import { createJob, createProject, createWorkflow, fetchPresets, listProjects } from '../lib/api';
-import type { Project, WorkflowPreset } from '../lib/types';
+import { createJob, createProject, createWorkflow, fetchPresets, listProjects, api } from '../lib/api';
+import type { DatasetFile, LibraryAsset, Project, WorkflowPreset } from '../lib/types';
 
 export function WorkflowBuilder() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -9,19 +9,32 @@ export function WorkflowBuilder() {
   const [projectId, setProjectId] = useState<number | ''>('');
   const [presetId, setPresetId] = useState('');
   const [advanced, setAdvanced] = useState(false);
-  const [mzbatchText, setMzbatchText] = useState('<batch mzmine="preserved-mock-template"></batch>');
+  const [mzbatchText, setMzbatchText] = useState('');
+  const [inputFileIds, setInputFileIds] = useState<number[]>([]);
+  const [libraryIds, setLibraryIds] = useState<number[]>([]);
+  const [files, setFiles] = useState<DatasetFile[]>([]);
+  const [libraries, setLibraries] = useState<LibraryAsset[]>([]);
   const [message, setMessage] = useState('');
 
   const selectedPreset = presets.find((preset) => preset.id === presetId) || presets[0];
 
   useEffect(() => {
-    Promise.all([listProjects(), fetchPresets()]).then(([projectData, presetData]) => {
+    Promise.all([listProjects(), fetchPresets(), api.libraries()]).then(([projectData, presetData, libraryData]) => {
       setProjects(projectData);
       setPresets(presetData);
+      setLibraries(libraryData);
       if (projectData[0]) setProjectId(projectData[0].id);
       if (presetData[0]) setPresetId(presetData[0].id);
     });
   }, []);
+
+  useEffect(() => {
+    if (!projectId) {
+      setFiles([]);
+      return;
+    }
+    api.projectFiles(Number(projectId)).then(setFiles).catch(() => setFiles([]));
+  }, [projectId]);
 
   async function ensureProject() {
     if (projectId) return Number(projectId);
@@ -31,14 +44,24 @@ export function WorkflowBuilder() {
     return project.id;
   }
 
+  function selectMultiple(setter: React.Dispatch<React.SetStateAction<number[]>>) {
+    return (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const values = Array.from(event.target.selectedOptions).map((option) => Number(option.value));
+      setter(values);
+    };
+  }
+
   async function submitWorkflow() {
     const targetProject = await ensureProject();
+    const needsMzbatch = selectedPreset?.engines?.includes('mzmine');
     const workflow = await createWorkflow({
       project_id: targetProject,
       name: selectedPreset?.name || 'Custom workflow',
       engine: selectedPreset?.engines?.join('+') || 'pipeline',
       preset_key: selectedPreset?.id,
-      mzbatch_text: mzbatchText,
+      mzbatch_text: needsMzbatch ? mzbatchText : undefined,
+      library_ids: libraryIds,
+      input_file_ids: inputFileIds,
       parameters: {
         ...(selectedPreset?.parameters || {}),
         preserve_mzbatch: true,
@@ -49,7 +72,9 @@ export function WorkflowBuilder() {
       project_id: targetProject,
       workflow_id: workflow.id,
       name: `${workflow.name} run`,
-      job_type: 'full_pipeline',
+      job_type: selectedPreset?.engines?.length === 1 ? selectedPreset.engines[0] : 'full_pipeline',
+      library_ids: libraryIds,
+      input_file_ids: inputFileIds,
       parameters: workflow.parameters,
     });
     setMessage(`Submitted mock job ${job.id}. Open Job Monitor to follow logs and results.`);
@@ -60,7 +85,7 @@ export function WorkflowBuilder() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Workflow Builder</h1>
         <p className="text-slate-500">
-          Choose editable presets, preserve mzbatch text, and submit reproducible mock jobs.
+          Choose editable presets, select input files and spectral libraries, and submit reproducible jobs.
         </p>
       </div>
       {message && <Alert color="success">{message}</Alert>}
@@ -112,10 +137,43 @@ export function WorkflowBuilder() {
             </div>
           )}
           <div>
-            <Label>Raw .mzbatch XML/text (preserved for reproducibility)</Label>
-            <Textarea rows={8} value={mzbatchText} onChange={(event) => setMzbatchText(event.target.value)} />
+            <Label>Input files {selectedPreset?.engines?.includes('mzmine') ? '(mzML/mzXML/MGF/MSP)' : '(MGF/MSP/mzXML/mzML)'}</Label>
+            <select
+              multiple
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+              size={Math.min(5, Math.max(files.length, 2))}
+              onChange={selectMultiple(setInputFileIds)}
+            >
+              {files.map((file) => (
+                <option key={file.id} value={file.id}>
+                  {file.original_name} ({file.file_type})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500">Hold Ctrl/Cmd to select multiple files.</p>
           </div>
-          <Button onClick={submitWorkflow}>Save workflow and submit mock job</Button>
+          <div>
+            <Label>Spectral libraries (MGF/MSP)</Label>
+            <select
+              multiple
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+              size={Math.min(5, Math.max(libraries.length, 2))}
+              onChange={selectMultiple(setLibraryIds)}
+            >
+              {libraries.map((library) => (
+                <option key={library.id} value={library.id}>
+                  {library.name} ({library.asset_type})
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedPreset?.engines?.includes('mzmine') && (
+            <div>
+              <Label>Raw .mzbatch XML/text (preserved for reproducibility, or leave empty to auto-generate)</Label>
+              <Textarea rows={8} value={mzbatchText} onChange={(event) => setMzbatchText(event.target.value)} />
+            </div>
+          )}
+          <Button onClick={submitWorkflow}>Save workflow and submit job</Button>
         </Card>
         <Card>
           <h2 className="text-lg font-semibold text-slate-900">Batch-mode guardrails</h2>
@@ -124,7 +182,7 @@ export function WorkflowBuilder() {
             <li>Original mzbatch content is stored exactly with the workflow.</li>
             <li>Production workers construct commands as argument arrays, not shell strings.</li>
             <li>SIRIUS credentials and licenses remain server-side.</li>
-            <li>DREAMS, MS2DeepScore, MS2Query, and libraries are detected as optional modules.</li>
+            <li>DREAMS, MS2DeepScore, MS2Query, matchms, and CFM-ID libraries are detected as optional modules.</li>
           </ul>
         </Card>
       </div>

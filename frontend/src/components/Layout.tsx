@@ -13,7 +13,9 @@ const nav = [
   { key: 'visualizations', label: 'Visualizations', icon: '◌' },
   { key: 'statistics', label: 'Statistics', icon: '∑' },
   { key: 'network', label: 'Molecular Network', icon: '◇' },
-  { key: 'libraries', label: 'Libraries & Models', icon: '◫' },
+  { key: 'libraries', label: 'Libraries', icon: '◫' },
+  { key: 'models', label: 'Models & Training', icon: 'M' },
+  { key: 'sirius', label: 'SIRIUS Settings', icon: 'S' },
   { key: 'system', label: 'System Status', icon: '✓' },
 ]
 

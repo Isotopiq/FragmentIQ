@@ -41,8 +41,11 @@ export type Workflow = {
   name: string;
   engine: string;
   preset_key?: string;
+  library_ids: number[];
+  input_file_ids: number[];
   parameters: Record<string, unknown>;
   mzbatch_text?: string;
+  validation_warnings?: string[];
 };
 
 export type Job = {
@@ -51,6 +54,8 @@ export type Job = {
   workflow_id?: number;
   name: string;
   job_type: string;
+  library_ids: number[];
+  input_file_ids: number[];
   status: string;
   stage: string;
   progress: number;
@@ -76,6 +81,7 @@ export type LibraryAsset = {
   asset_type: string;
   source: string;
   description?: string;
+  library_format?: string;
   ion_mode?: string;
   supported_engines: string[];
   path: string;
@@ -89,8 +95,21 @@ export type ModelAsset = {
   name: string;
   engine: string;
   version?: string;
+  status?: string;
+  base_model_id?: number;
+  is_default?: boolean;
+  training_params?: Record<string, unknown>;
+  training_job_id?: number;
   path: string;
   size_bytes: number;
   created_at: string;
+};
+
+export type SiriusCredentials = {
+  username: string;
+  password: string;
+  url?: string;
+  sirius_path?: string;
+  accept_terms?: boolean;
 };
 

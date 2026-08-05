@@ -1,6 +1,6 @@
 @import "tailwindcss";
+@import "flowbite/dist/flowbite.min.css";
 @config "../tailwind.config.cjs";
-@import "flowbite-react/plugin/tailwindcss/index.css";
 
 body {
   margin: 0;

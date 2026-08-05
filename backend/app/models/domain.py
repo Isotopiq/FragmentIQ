@@ -58,6 +58,8 @@ class WorkflowCreate(SQLModel):
     engine: str = "pipeline"
     preset_key: str | None = None
     mzbatch_text: str | None = None
+    library_ids: list[int] = Field(default_factory=list)
+    input_file_ids: list[int] = Field(default_factory=list)
     parameters: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -68,6 +70,8 @@ class Workflow(SQLModel, table=True):
     engine: str = "pipeline"
     preset_key: str | None = None
     mzbatch_text: str | None = None
+    library_ids: list[int] = Field(default_factory=list, sa_column=Column(JSON))
+    input_file_ids: list[int] = Field(default_factory=list, sa_column=Column(JSON))
     parameters: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     validation_warnings: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -79,6 +83,8 @@ class JobCreate(SQLModel):
     workflow_id: int | None = None
     name: str
     job_type: str = "full_pipeline"
+    library_ids: list[int] = Field(default_factory=list)
+    input_file_ids: list[int] = Field(default_factory=list)
     parameters: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -88,6 +94,8 @@ class Job(SQLModel, table=True):
     workflow_id: int | None = Field(default=None, foreign_key="workflow.id")
     name: str
     job_type: str = "full_pipeline"
+    library_ids: list[int] = Field(default_factory=list, sa_column=Column(JSON))
+    input_file_ids: list[int] = Field(default_factory=list, sa_column=Column(JSON))
     status: str = Field(default="queued", index=True)
     progress: int = 0
     stage: str = "queued"
@@ -126,6 +134,7 @@ class LibraryAsset(SQLModel, table=True):
     asset_type: str = "library"
     source: str = ""
     description: str = ""
+    library_format: str | None = None  # "mgf" | "msp"
     ion_mode: str | None = None
     supported_engines: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     path: str
@@ -140,6 +149,11 @@ class ModelAsset(SQLModel, table=True):
     name: str
     engine: str
     version: str | None = None
+    status: str = "ready"  # queued | training | ready | failed
+    base_model_id: int | None = None
+    training_params: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    training_job_id: int | None = None
+    is_default: bool = False
     path: str
     size_bytes: int = 0
     extra_metadata: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
