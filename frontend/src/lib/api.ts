@@ -126,10 +126,11 @@ export const api = {
   engines: () => request<Record<string, EngineStatus>>('/system/engines'),
   status: () => request<Record<string, unknown>>('/system/status'),
   installPackage: (packageName: string) =>
-    request<{ status: string; message: string; detail?: Record<string, unknown> }>('/system/packages/install', {
+    request<{ status: string; package?: string; message: string; detail?: Record<string, unknown> }>('/system/packages/install', {
       method: 'POST',
       body: JSON.stringify({ package: packageName }),
     }),
+  installStatus: () => request<{ installs: Record<string, { status: string; message: string; detail?: Record<string, unknown> }> }>('/system/packages/status'),
   resetDemo: () => request<{ status: string; project_id?: number; job_id?: number }>('/demo/reset', { method: 'POST' })
 }
 

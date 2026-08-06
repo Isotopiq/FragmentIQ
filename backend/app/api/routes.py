@@ -21,7 +21,7 @@ from app.core.storage import (
     zip_paths,
 )
 from app.models.domain import DatasetFile, Job, JobCreate, JobLog, LibraryAsset, MetadataTable, ModelAsset, Project, ResultTable, Workflow
-from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, install_package
+from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, get_install_status, install_package
 from app.services.jobs import build_results_zip, create_job, event_stream, result_rows
 from app.services.parsers import parse_metadata_text, validate_metadata_rows
 from app.services.spectral_libraries import index_spectral_library
@@ -546,6 +546,11 @@ def install_system_package(payload: dict[str, str]) -> dict[str, Any]:
             detail=f"Package '{package_name}' is not installable. Allowed: {', '.join(sorted(INSTALLABLE_PACKAGES))}",
         )
     return install_package(package_name)
+
+
+@router.get("/system/packages/status")
+def list_install_status() -> dict[str, Any]:
+    return {"installs": get_install_status()}
 
 
 @router.post("/spectral-search")
