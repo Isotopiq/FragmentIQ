@@ -281,73 +281,6 @@ def run_matchms_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[
     return {"annotations": rows}
 
 
-def run_cfm_id_step(ctx: RealRunContext, run_dir: Path) -> dict[str, list[dict[str, Any]]]:
-    from app.services.cfm_id import CfmIdRunner
-
-    model_id = ctx.job.parameters.get("cfm_model_id") if ctx.job.parameters else None
-    model = None
-    if model_id:
-        from app.core.database import engine as db_engine
-        with Session(db_engine) as _session:
-            model = _session.get(ModelAsset, int(model_id))
-    model_dir = Path(model.path) if model and model.path else Path(settings.models_dir) / "cfm"
-    runner = CfmIdRunner(
-        predict_binary=settings.cfm_binary,
-        identify_binary=settings.cfm_id_binary,
-        train_binary=settings.cfm_train_binary,
-        model_dir=model_dir,
-    )
-    params = ctx.job.parameters or {}
-    job_type = ctx.job.job_type.lower()
-    ion_mode = str(params.get("ion_mode", "+")).lower()
-    ion_arg = "+" if ion_mode in ("positive", "+", "pos") else "-"
-
-    if job_type == "cfm_id_predict":
-        smiles_list = params.get("smiles_list", [])
-        output_dir = run_dir / "cfm_predict"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        rows: list[dict[str, Any]] = []
-        for idx, smiles in enumerate(smiles_list):
-            out = output_dir / f"predicted_{idx}.txt"
-            runner.predict_spectrum(smiles, out, ion_mode=ion_arg)
-            rows.append({"feature_id": f"CFM{idx:04d}", "smiles": smiles, "predicted_spectrum_file": str(out), "annotation_source": "cfm_id"})
-        return {"annotations": rows}
-
-    query_paths = selected_input_paths(ctx, {"MGF", "MSP"})
-    if not query_paths:
-        raise RunnerConfigurationError("CFM-ID identification requires an uploaded query spectrum file.")
-    candidate_file = run_dir / "candidates.txt"
-    # Build candidate list from selected library metadata
-    libs = selected_libraries(ctx)
-    if libs:
-        from app.services.spectral_libraries import ensure_normalized_mgf
-        lib_path = ensure_normalized_mgf(Path(libs[0].path), Path("./data/libraries/.cache"))
-        # Extract candidate SMILES from library MGF
-        candidate_file.write_text("# id smiles\n", encoding="utf-8")
-        # Simplified: use matchms to pull metadata
-        from app.services.matchms_runner import load_spectra
-        lib_spectra = load_spectra(lib_path)
-        with candidate_file.open("a", encoding="utf-8") as handle:
-            for i, spec in enumerate(lib_spectra):
-                smiles = spec.get("smiles") or spec.get("SMILES")
-                if smiles:
-                    handle.write(f"{i}\t{smiles}\n")
-    if not candidate_file.exists() or candidate_file.stat().st_size == 0:
-        raise RunnerConfigurationError("CFM-ID identification requires a candidate list (SMILES) from a selected library.")
-    out = run_dir / "cfm_id_results.txt"
-    rows = runner.identify_compound(
-        query_paths[0],
-        candidate_file,
-        out,
-        ion_mode=ion_arg,
-        score_type=str(params.get("score_type", "DotProduct")),
-        num_highest=int(params.get("num_highest", 10)),
-        ppm_mass_tol=float(params.get("ppm_mass_tol", 10.0)),
-        abs_mass_tol=float(params.get("abs_mass_tol", 0.01)),
-    )
-    return {"annotations": rows}
-
-
 def commands_for_job(session: Session, job: Job) -> list[EngineCommand | PythonEngineStep]:
     workflow = session.get(Workflow, job.workflow_id) if job.workflow_id else None
     run_dir = job_dir(job.id)
@@ -372,9 +305,6 @@ def commands_for_job(session: Session, job: Job) -> list[EngineCommand | PythonE
 
     if job_type in {"matchms"}:
         steps.append(PythonEngineStep("matchms", run_matchms_step))
-
-    if job_type in {"cfm_id", "cfm_id_predict", "cfm_id_identify"}:
-        steps.append(PythonEngineStep("cfm_id", run_cfm_id_step))
 
     if not steps:
         raise RunnerConfigurationError(f"No real runner is configured for job type: {job.job_type}")
@@ -494,9 +424,8 @@ def run_real_pipeline(context: RealRunContext) -> None:
     ms2query_rows = [r for r in aggregated["annotations"] if r.get("annotation_source") == "ms2query"]
     dreams_rows = [r for r in aggregated["annotations"] if r.get("annotation_source") == "dreams"]
     matchms_rows = [r for r in aggregated["annotations"] if r.get("annotation_source") == "matchms"]
-    cfm_rows = [r for r in aggregated["annotations"] if r.get("annotation_source") == "cfm_id"]
 
-    non_empty_sources = sum(1 for group in (sirius_rows, ms2query_rows, dreams_rows, matchms_rows, cfm_rows) if group)
+    non_empty_sources = sum(1 for group in (sirius_rows, ms2query_rows, dreams_rows, matchms_rows) if group)
     if non_empty_sources > 1:
         consensus = merge_annotations(
             aggregated["features"],
@@ -504,7 +433,6 @@ def run_real_pipeline(context: RealRunContext) -> None:
             ms2query_rows=ms2query_rows or None,
             dreams_rows=dreams_rows or None,
             matchms_rows=matchms_rows or None,
-            cfm_rows=cfm_rows or None,
             weights=context.workflow.parameters.get("weights") if context.workflow else None,
         )
         aggregated["annotations"] = consensus

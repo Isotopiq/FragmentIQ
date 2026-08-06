@@ -161,21 +161,6 @@ def detect_engines() -> dict[str, Any]:
         "dreams": {**package_status("dreams"), "installable": package_name_in_allowlist("dreams")},
         "spec2vec": {**package_status("spec2vec"), "installable": package_name_in_allowlist("spec2vec")},
         "rdkit": {**package_status("rdkit"), "installable": package_name_in_allowlist("rdkit")},
-        "cfm-predict": {
-            **command_status(settings.cfm_binary, ["--help"]),
-            "installable": False,
-            "notes": "CFM-ID binaries must be installed manually or via the wishartlab/cfmid Docker image.",
-        },
-        "cfm-id": {
-            **command_status(settings.cfm_id_binary, ["--help"]),
-            "installable": False,
-            "notes": "CFM-ID binaries must be installed manually or via the wishartlab/cfmid Docker image.",
-        },
-        "cfm-train": {
-            **command_status(settings.cfm_train_binary, ["--help"]),
-            "installable": False,
-            "notes": "CFM-ID binaries must be installed manually or via the wishartlab/cfmid Docker image.",
-        },
         "models": _asset_status(settings.models_dir, "needs_model"),
         "libraries": _asset_status(settings.libraries_dir, "needs_library"),
     }

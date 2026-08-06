@@ -10,7 +10,6 @@ DEFAULT_WEIGHTS = {
     "ms2deepscore": 0.15,
     "ms2query_score": 0.1,
     "dreams_score": 0.05,
-    "cfm_score": 0.1,
 }
 
 
@@ -31,7 +30,6 @@ def merge_annotations(
     ms2query_rows: list[dict[str, Any]] | None = None,
     dreams_rows: list[dict[str, Any]] | None = None,
     matchms_rows: list[dict[str, Any]] | None = None,
-    cfm_rows: list[dict[str, Any]] | None = None,
     weights: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """
@@ -80,7 +78,6 @@ def merge_annotations(
     add_rows(ms2query_rows, "ms2query_score", "ms2query")
     add_rows(dreams_rows, "dreams_score", "dreams")
     add_rows(matchms_rows, "matchms_cosine", "matchms")
-    add_rows(cfm_rows, "cfm_score", "cfm_id")
 
     results: list[dict[str, Any]] = []
     for entry in by_feature.values():

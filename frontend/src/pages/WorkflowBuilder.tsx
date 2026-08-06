@@ -251,7 +251,7 @@ export function WorkflowBuilder() {
             <li>Original mzbatch content is stored exactly with the workflow.</li>
             <li>Production workers construct commands as argument arrays, not shell strings.</li>
             <li>SIRIUS credentials and licenses remain server-side.</li>
-            <li>DREAMS, MS2DeepScore, MS2Query, matchms, and CFM-ID libraries are detected as optional modules.</li>
+            <li>DREAMS, MS2DeepScore, MS2Query, and matchms libraries are detected as optional modules.</li>
           </ul>
         </Card>
       </div>
