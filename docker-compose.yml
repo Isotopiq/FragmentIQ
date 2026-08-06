@@ -16,7 +16,7 @@ services:
       - ./data:/app/data
       - ./example_workflows:/app/example_workflows:ro
     ports:
-      - "8001:8000"
+      - "47830:8000"
     depends_on:
       - redis
 
@@ -26,7 +26,7 @@ services:
       args:
         VITE_API_BASE: /api
     ports:
-      - "3001:80"
+      - "47831:80"
     depends_on:
       - backend
 
