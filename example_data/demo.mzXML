@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<mzXML xmlns="http://sashimi.sourceforge.net/schema_revision/mzXML_2.1">
+<msRun scanCount="2">
+<scan num="1" msLevel="2" peaksCount="3" retentionTime="PT10S" polarity="+">
+<precursorMz precursorIntensity="1000">100.0</precursorMz>
+<peaks precision="32" byteOrder="network" pairOrder="m/z-int">QsgAAER6AABDSAAAQ/oAAEOWAABDegAA</peaks>
+</scan>
+<scan num="2" msLevel="2" peaksCount="3" retentionTime="PT20S" polarity="+">
+<precursorMz precursorIntensity="1000">200.0</precursorMz>
+<peaks precision="32" byteOrder="network" pairOrder="m/z-int">Q0gAAER6AABDlgAAQ8gAAEPIAABDSAAA</peaks>
+</scan>
+</msRun>
+</mzXML>

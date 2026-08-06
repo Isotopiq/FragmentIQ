@@ -13,7 +13,10 @@ const nav = [
   { key: 'visualizations', label: 'Visualizations', icon: '◌' },
   { key: 'statistics', label: 'Statistics', icon: '∑' },
   { key: 'network', label: 'Molecular Network', icon: '◇' },
-  { key: 'libraries', label: 'Libraries & Models', icon: '◫' },
+  { key: 'libraries', label: 'Libraries', icon: '◫' },
+  { key: 'models', label: 'Models & Training', icon: 'M' },
+  { key: 'spectral', label: 'MS2 Identification', icon: '⚡' },
+  { key: 'sirius', label: 'SIRIUS Settings', icon: 'S' },
   { key: 'system', label: 'System Status', icon: '✓' },
 ]
 
@@ -46,14 +49,16 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
       )}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white p-5 shadow-sm transition-transform duration-200 dark:border-slate-800 dark:bg-slate-900 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}
+          sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'
+        } sidebar-desktop`}
       >
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-indigo-600 p-2 text-white shadow-lg shadow-indigo-600/20">
-              <span className="block h-7 w-7 text-center text-xl leading-7">⚗</span>
-            </div>
+            <img
+              src="/logo.png"
+              alt="Isotopiq"
+              className="h-8 max-w-[120px] object-contain"
+            />
             <div>
               <h1 className="text-xl font-bold tracking-tight">FragmentIQ</h1>
               <p className="text-xs text-slate-500">LC-MS/MS annotation platform</p>
@@ -93,6 +98,11 @@ export function Layout({ children, page, setPage, projects, projectId, setProjec
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
+              <img
+                src="/logo.png"
+                alt="Isotopiq"
+                className="h-7 max-w-[100px] object-contain"
+              />
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500">Project context</p>
                 <select

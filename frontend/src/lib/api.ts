@@ -6,6 +6,8 @@ import type {
   MetadataTable,
   ModelAsset,
   Project,
+  SiriusCredentials,
+  SpectralSearchResponse,
   Workflow,
   WorkflowPreset
 } from './types'
@@ -73,7 +75,7 @@ export const api = {
   createWorkflow: (payload: Partial<Workflow>) => request<Workflow>('/workflows', { method: 'POST', body: JSON.stringify(payload) }),
   validateWorkflow: (workflowId: number) => request<{ valid: boolean; warnings: string[] }>(`/workflows/${workflowId}/validate`, { method: 'POST' }),
   jobs: (projectId?: number) => request<Job[]>(`/jobs${projectId ? `?project_id=${projectId}` : ''}`),
-  createJob: (payload: { project_id: number; workflow_id?: number; name: string; job_type: string; parameters?: Record<string, unknown> }) =>
+  createJob: (payload: { project_id: number; workflow_id?: number; name: string; job_type: string; library_ids?: number[]; input_file_ids?: number[]; parameters?: Record<string, unknown> }) =>
     request<Job>('/jobs', { method: 'POST', body: JSON.stringify(payload) }),
   cancelJob: (jobId: number) => request<Job>(`/jobs/${jobId}/cancel`, { method: 'POST' }),
   retryJob: (jobId: number) => request<Job>(`/jobs/${jobId}/retry`, { method: 'POST' }),
@@ -99,6 +101,7 @@ export const api = {
     form.append('file', payload.file)
     return request<LibraryAsset>('/libraries', { method: 'POST', body: form })
   },
+  indexLibrary: (libraryId: number) => request<LibraryAsset>(`/libraries/${libraryId}/index`, { method: 'POST' }),
   models: () => request<ModelAsset[]>('/models'),
   listModels: () => request<ModelAsset[]>('/models'),
   uploadModel: (payload: { name: string; engine: string; file: File; version?: string }) => {
@@ -109,6 +112,12 @@ export const api = {
     form.append('file', payload.file)
     return request<ModelAsset>('/models', { method: 'POST', body: form })
   },
+  setDefaultModel: (modelId: number) => request<ModelAsset>(`/models/${modelId}/default`, { method: 'POST' }),
+  trainModel: (payload: { project_id: number; name: string; engine: string; parameters?: Record<string, unknown>; training_file_id?: number; base_model_id?: number }) =>
+    request<Job>('/models/train', { method: 'POST', body: JSON.stringify(payload) }),
+  testSirius: (payload: SiriusCredentials) => request<{ status: string; account?: unknown; message?: string }>('/system/sirius/test', { method: 'POST', body: JSON.stringify(payload) }),
+  consensus: (jobId: number) => request<{ rows: Record<string, unknown>[] }>(`/jobs/${jobId}/results/consensus`),
+  spectralSearch: (payload: Record<string, unknown>) => request<SpectralSearchResponse>('/spectral-search', { method: 'POST', body: JSON.stringify(payload) }),
   uploadFileSingle: (projectId: number, file: File) => {
     const form = new FormData()
     form.append('files', file)
@@ -123,6 +132,12 @@ export const api = {
     }),
   resetDemo: () => request<{ status: string; project_id?: number; job_id?: number }>('/demo/reset', { method: 'POST' })
 }
+
+export const fetchConsensus = (jobId: number) => api.consensus(jobId).then((payload) => payload.rows)
+export const indexLibrary = api.indexLibrary
+export const setDefaultModel = api.setDefaultModel
+export const trainModel = api.trainModel
+export const testSirius = api.testSirius
 
 export const listProjects = () => api.projects()
 export const getProjects = listProjects

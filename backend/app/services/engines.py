@@ -39,16 +39,42 @@ def package_status(module_name: str) -> dict[str, Any]:
         return {"status": "error", "version": str(exc)}
 
 
-INSTALLABLE_PACKAGES: dict[str, str] = {
-    "matchms": "matchms",
-    "ms2deepscore": "ms2deepscore",
-    "ms2query": "ms2query",
-    "spec2vec": "spec2vec",
-    "rdkit": "rdkit",
-}
+class _InstallSpec:
+    def __init__(
+        self,
+        pip_name: str,
+        *,
+        module_name: str | None = None,
+        commands: list[str] | None = None,
+        extras: list[str] | None = None,
+        ignore_requires_python: bool = False,
+    ):
+        self.pip_name = pip_name
+        self.module_name = module_name
+        self.commands = commands or []
+        self.extras = extras or []
+        self.ignore_requires_python = ignore_requires_python
 
-_EXTRA_DEPS: dict[str, list[str]] = {
-    "ms2query": ["onnxruntime", "h5py", "pyarrow", "skl2onnx"],
+
+INSTALLABLE_PACKAGES: dict[str, _InstallSpec] = {
+    "matchms": _InstallSpec("matchms", module_name="matchms"),
+    "ms2deepscore": _InstallSpec("ms2deepscore", module_name="ms2deepscore"),
+    "ms2query": _InstallSpec(
+        "ms2query",
+        module_name="ms2query",
+        extras=["onnxruntime", "h5py", "pyarrow", "skl2onnx"],
+    ),
+    "spec2vec": _InstallSpec("spec2vec", module_name="spec2vec"),
+    "rdkit": _InstallSpec("rdkit", module_name="rdkit"),
+    "py-sirius-ms": _InstallSpec(
+        "git+https://github.com/sirius-ms/sirius-client-openAPI.git#subdirectory=client-api_python/generated",
+        module_name="PySirius",
+    ),
+    "dreams": _InstallSpec(
+        "git+https://github.com/pluskal-lab/DreaMS.git",
+        module_name="dreams",
+        ignore_requires_python=True,
+    ),
 }
 
 _CONSTRAINT_FILE = Path("/tmp/fragmentiq_pip_constraints.txt")
@@ -59,43 +85,56 @@ def _write_constraints() -> Path:
     return _CONSTRAINT_FILE
 
 
-def _pip_install(packages: list[str], *, no_deps: bool = False) -> subprocess.CompletedProcess[str]:
+def _pip_install(packages: list[str], *, no_deps: bool = False, ignore_requires_python: bool = False) -> subprocess.CompletedProcess[str]:
+    import os
+
     constraint = _write_constraints()
-    env = {**__import__("os").environ, "PIP_CONSTRAINT": str(constraint)}
+    env = {**os.environ, "PIP_CONSTRAINT": str(constraint)}
     cmd = [
         sys.executable, "-m", "pip", "install",
-        "--prefer-binary", "--quiet",
+        "--prefer-binary",
         *packages,
     ]
     if no_deps:
         cmd.insert(-len(packages), "--no-deps")
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
+    if ignore_requires_python:
+        cmd.insert(-len(packages), "--ignore-requires-python")
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
 
 
 def install_package(package_name: str) -> dict[str, Any]:
-    pip_name = INSTALLABLE_PACKAGES.get(package_name)
-    if not pip_name:
+    spec = INSTALLABLE_PACKAGES.get(package_name)
+    if not spec:
         return {"status": "error", "message": f"Package '{package_name}' is not in the installable allowlist."}
+    pip_name = spec.pip_name
     try:
-        extras = _EXTRA_DEPS.get(package_name, [])
-        if extras:
-            _pip_install(extras)
+        if spec.extras:
+            _pip_install(spec.extras, ignore_requires_python=spec.ignore_requires_python)
 
-        completed = _pip_install([pip_name])
+        completed = _pip_install([pip_name], ignore_requires_python=spec.ignore_requires_python)
+        stderr = completed.stderr.strip()
         if completed.returncode != 0:
-            fallback = _pip_install([pip_name], no_deps=True)
+            fallback = _pip_install([pip_name], no_deps=True, ignore_requires_python=spec.ignore_requires_python)
             if fallback.returncode != 0:
-                stderr = completed.stderr.strip()
                 short = stderr.split("\n")[-1] if stderr else "pip install failed"
                 return {"status": "error", "message": short, "log": stderr}
 
         importlib.invalidate_caches()
-        status = package_status(package_name)
-        if status["status"] == "available":
-            return {"status": "installed", "message": f"Successfully installed {pip_name}", "detail": status}
-        return {"status": "installed", "message": f"Installed {pip_name} (may need restart to detect)", "detail": status}
+
+        if spec.module_name and importlib.util.find_spec(spec.module_name):
+            status = package_status(spec.module_name)
+            if status["status"] == "available":
+                return {"status": "installed", "message": f"Successfully installed {pip_name}", "detail": status}
+
+        if spec.commands:
+            for command in spec.commands:
+                status = command_status(command, ["--version"])
+                if status["status"] == "available":
+                    return {"status": "installed", "message": f"Successfully installed {pip_name} ({command} available)", "detail": status}
+
+        return {"status": "installed", "message": f"Installed {pip_name} (verify binary/module availability)", "detail": {"stderr": stderr}}
     except subprocess.TimeoutExpired:
-        return {"status": "error", "message": f"Installation of {pip_name} timed out after 5 minutes"}
+        return {"status": "error", "message": f"Installation of {pip_name} timed out after 10 minutes"}
     except Exception as exc:
         return {"status": "error", "message": str(exc)}
 
@@ -115,12 +154,32 @@ def detect_engines() -> dict[str, Any]:
             **command_status(settings.sirius_binary, ["--version"]),
             "notes": "SIRIUS login/license configuration is server-side only.",
         },
-        "matchms": {**package_status("matchms"), "installable": True},
-        "ms2deepscore": {**package_status("ms2deepscore"), "installable": True},
-        "ms2query": {**package_status("ms2query"), "installable": True},
-        "dreams": package_status("dreams"),
-        "spec2vec": {**package_status("spec2vec"), "installable": True},
-        "rdkit": {**package_status("rdkit"), "installable": True},
+        "py-sirius-ms": {**package_status("PySirius"), "installable": package_name_in_allowlist("py-sirius-ms")},
+        "matchms": {**package_status("matchms"), "installable": package_name_in_allowlist("matchms")},
+        "ms2deepscore": {**package_status("ms2deepscore"), "installable": package_name_in_allowlist("ms2deepscore")},
+        "ms2query": {**package_status("ms2query"), "installable": package_name_in_allowlist("ms2query")},
+        "dreams": {**package_status("dreams"), "installable": package_name_in_allowlist("dreams")},
+        "spec2vec": {**package_status("spec2vec"), "installable": package_name_in_allowlist("spec2vec")},
+        "rdkit": {**package_status("rdkit"), "installable": package_name_in_allowlist("rdkit")},
+        "cfm-predict": {
+            **command_status(settings.cfm_binary, ["--help"]),
+            "installable": False,
+            "notes": "CFM-ID binaries must be installed manually or via the wishartlab/cfmid Docker image.",
+        },
+        "cfm-id": {
+            **command_status(settings.cfm_id_binary, ["--help"]),
+            "installable": False,
+            "notes": "CFM-ID binaries must be installed manually or via the wishartlab/cfmid Docker image.",
+        },
+        "cfm-train": {
+            **command_status(settings.cfm_train_binary, ["--help"]),
+            "installable": False,
+            "notes": "CFM-ID binaries must be installed manually or via the wishartlab/cfmid Docker image.",
+        },
         "models": _asset_status(settings.models_dir, "needs_model"),
         "libraries": _asset_status(settings.libraries_dir, "needs_library"),
     }
+
+
+def package_name_in_allowlist(name: str) -> bool:
+    return name in INSTALLABLE_PACKAGES

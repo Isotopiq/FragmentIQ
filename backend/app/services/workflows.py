@@ -98,6 +98,114 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
             "minimum_matched_peaks": 6,
         },
     },
+    {
+        "id": "mzmine-mzxml-positive",
+        "name": "MZmine positive mode (mzXML/mzML)",
+        "category": "MZmine/SIRIUS",
+        "description": "Generate a default MZmine batch for positive-mode raw data and hand off to SIRIUS.",
+        "engines": ["mzmine", "sirius"],
+        "parameters": {
+            "ion_mode": "positive",
+            "mz_tolerance_ppm": 10,
+            "rt_tolerance_minutes": 0.2,
+            "mass_detection_noise": 1000,
+            "export_feature_table": True,
+            "export_mgf": True,
+            "generate_batch": True,
+        },
+    },
+    {
+        "id": "mzmine-mzxml-negative",
+        "name": "MZmine negative mode (mzXML/mzML)",
+        "category": "MZmine/SIRIUS",
+        "description": "Generate a default MZmine batch for negative-mode raw data and hand off to SIRIUS.",
+        "engines": ["mzmine", "sirius"],
+        "parameters": {
+            "ion_mode": "negative",
+            "mz_tolerance_ppm": 10,
+            "rt_tolerance_minutes": 0.25,
+            "mass_detection_noise": 800,
+            "export_feature_table": True,
+            "export_mgf": True,
+            "generate_batch": True,
+        },
+    },
+    {
+        "id": "sirius-api-positive",
+        "name": "SIRIUS API positive annotation",
+        "category": "SIRIUS",
+        "description": "Submit uploaded MGF/MSP/mzXML/mzML to the SIRIUS REST API for formula/structure/CANOPUS.",
+        "engines": ["sirius_api"],
+        "parameters": {
+            "ion_mode": "positive",
+            "enable_canopus": True,
+            "enable_zodiac": True,
+        },
+    },
+    {
+        "id": "ms2query-library-search",
+        "name": "MS2Query library search",
+        "category": "ML-MS/MS",
+        "description": "Search query spectra against a custom or default MS2Query library.",
+        "engines": ["ms2query"],
+        "parameters": {
+            "ion_mode": "positive",
+            "top_n": 10,
+        },
+    },
+    {
+        "id": "dreams-library-search",
+        "name": "DreaMS library search",
+        "category": "ML-MS/MS",
+        "description": "Use DreaMS embeddings for spectral similarity and library search.",
+        "engines": ["dreams"],
+        "parameters": {
+            "ion_mode": "positive",
+            "top_n": 5,
+        },
+    },
+    {
+        "id": "matchms-library-search",
+        "name": "matchms cosine library search",
+        "category": "ML-MS/MS",
+        "description": "Search query spectra from uploaded MGF/MSP/mzXML/mzML files against an MGF/MSP spectral library with modified cosine.",
+        "engines": ["matchms"],
+        "parameters": {
+            "ion_mode": "positive",
+            "minimum_cosine": 0.7,
+            "minimum_matched_peaks": 3,
+            "top_n": 5,
+            "precursor_tolerance": 0.01,
+            "mz_tolerance": 0.1,
+        },
+    },
+    {
+        "id": "cfm-id-predict",
+        "name": "CFM-ID spectrum prediction",
+        "category": "CFM-ID",
+        "description": "Predict in-silico MS/MS spectra from SMILES/InChI using CFM-ID.",
+        "engines": ["cfm_id"],
+        "parameters": {
+            "ion_mode": "positive",
+            "adduct": "[M+H]+",
+            "cfm_model_id": None,
+        },
+    },
+    {
+        "id": "cfm-id-identify",
+        "name": "CFM-ID compound identification",
+        "category": "CFM-ID",
+        "description": "Identify compounds from MS/MS spectra using CFM-ID predicted candidates.",
+        "engines": ["cfm_id"],
+        "parameters": {
+            "ion_mode": "positive",
+            "score_type": "DotProduct",
+            "num_highest": 10,
+            "ppm_mass_tol": 10.0,
+            "abs_mass_tol": 0.01,
+            "cfm_model_id": None,
+        },
+    },
 ]
 
 
@@ -114,4 +222,7 @@ def validate_workflow_payload(config: dict[str, Any]) -> list[str]:
     raw_mzbatch = config.get("raw_mzbatch") or config.get("mzbatch_text")
     if raw_mzbatch and "<batch" not in str(raw_mzbatch).lower() and "<batchstep" not in str(raw_mzbatch).lower():
         warnings.append("The .mzbatch file is preserved, but its XML does not look like a batch workflow.")
+    engines = config.get("engines") or parameters.get("engines", [])
+    if "mzmine" in engines and not config.get("input_file_ids"):
+        warnings.append("MZmine workflows need at least one uploaded mzML/mzXML/imzML file.")
     return warnings

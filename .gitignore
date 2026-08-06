@@ -13,3 +13,5 @@ data/*
 !data/models/.gitkeep
 !data/logs/.gitkeep
 !data/database/.gitkeep
+backend/data/
+

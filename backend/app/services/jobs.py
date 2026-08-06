@@ -14,7 +14,7 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.core.database import engine
 from app.core.storage import job_dir, log_path, zip_paths
-from app.models.domain import DatasetFile, Job, JobCreate, JobLog, ResultTable, Workflow
+from app.models.domain import DatasetFile, Job, JobCreate, JobLog, LibraryAsset, MetadataTable, ModelAsset, ResultTable, Workflow
 from app.services.engines import detect_engines
 from app.services.parsers import normalize_feature_records, parse_table
 from app.services.runners import ExternalToolError, RealRunContext, run_real_pipeline
@@ -57,15 +57,18 @@ def create_job(session: Session, payload: JobCreate) -> Job:
     if not workflow:
         raise ValueError("Workflow not found")
     command_args = ["mock-runner", "--job-type", payload.job_type] if settings.mock_execution else ["fragmentiq-runner", payload.job_type]
+    merged_parameters = {**(workflow.parameters or {}), **(payload.parameters or {})}
     job = Job(
         project_id=payload.project_id,
         workflow_id=workflow_id,
         name=payload.name,
         job_type=payload.job_type,
+        library_ids=payload.library_ids or workflow.library_ids or [],
+        input_file_ids=payload.input_file_ids or workflow.input_file_ids or [],
         status="queued",
         progress=0,
         stage="queued",
-        parameters=payload.parameters,
+        parameters=merged_parameters,
         command_args=command_args,
         software_versions=detect_engines(),
     )
@@ -164,12 +167,29 @@ async def run_real_job(job_id: int) -> None:
         with Session(engine) as session:
             job = session.get(Job, job_id)
             workflow = session.get(Workflow, job.workflow_id) if job and job.workflow_id else None
-            if not job or not workflow:
-                raise ExternalToolError("Job workflow is missing")
+            if not job:
+                raise ExternalToolError("Job is missing")
             files = session.exec(select(DatasetFile).where(DatasetFile.project_id == job.project_id)).all()
-            context = RealRunContext(job=job, workflow=workflow, files=files)
+            libraries = list(session.exec(select(LibraryAsset)).all()) if job.library_ids else []
+            if job.library_ids:
+                libraries = list(session.exec(select(LibraryAsset).where(LibraryAsset.id.in_(job.library_ids))).all())
+            metadata = session.exec(select(MetadataTable).where(MetadataTable.project_id == job.project_id)).first()
+            model_id = job.parameters.get("model_id") if job.parameters else None
+            selected_model = session.get(ModelAsset, int(model_id)) if model_id else None
+            context = RealRunContext(
+                job=job,
+                workflow=workflow,
+                files=files,
+                libraries=libraries,
+                metadata=metadata,
+                models={"default": selected_model} if selected_model else {},
+            )
 
-        await asyncio.to_thread(run_real_pipeline, context)
+        if job.job_type.startswith("train_model"):
+            from app.services.model_training import run_model_training_job
+            await asyncio.to_thread(run_model_training_job, job, job_dir(job.id))
+        else:
+            await asyncio.to_thread(run_real_pipeline, context)
         with Session(engine) as session:
             job = session.get(Job, job_id)
             if not job:
@@ -194,6 +214,8 @@ async def run_real_job(job_id: int) -> None:
 
 
 def write_mock_results(job_id: int) -> None:
+    from app.services.statistics import compute_metadata_aware_statistics
+
     with Session(engine) as session:
         job = session.get(Job, job_id)
         if not job:
@@ -201,7 +223,12 @@ def write_mock_results(job_id: int) -> None:
         session.exec(select(ResultTable).where(ResultTable.job_id == job.id)).all()
         features = _load_feature_upload(session, job.project_id) or _generate_features()
         annotations = [_annotation(row, idx) for idx, row in enumerate(features, start=1)]
-        statistics = [_statistics(row, idx) for idx, row in enumerate(features, start=1)]
+        metadata = session.exec(select(MetadataTable).where(MetadataTable.project_id == job.project_id)).first()
+        statistics = (
+            compute_metadata_aware_statistics(features, metadata, job.parameters or {})
+            if metadata
+            else [_statistics(row, idx) for idx, row in enumerate(features, start=1)]
+        ) or [_statistics(row, idx) for idx, row in enumerate(features, start=1)]
         plots = _plot_payload(features, statistics)
         tables = [
             ResultTable(job_id=job.id, result_type="features", columns=_columns(features), rows=features),
@@ -413,6 +440,8 @@ def retry_job(session: Session, job_id: int) -> Job:
             workflow_id=old_job.workflow_id,
             name=f"Retry of {old_job.name}",
             job_type=old_job.job_type,
+            library_ids=old_job.library_ids,
+            input_file_ids=old_job.input_file_ids,
             parameters=old_job.parameters,
         ),
     )

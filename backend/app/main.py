@@ -22,10 +22,13 @@ def create_app() -> FastAPI:
     )
     app.include_router(router, prefix="/api")
 
+    # Ensure tables exist at import/app creation so module-level TestClient
+    # usage and fresh deployments both have a ready schema.
+    ensure_storage_dirs()
+    create_db_and_tables()
+
     @app.on_event("startup")
     def startup() -> None:
-        ensure_storage_dirs()
-        create_db_and_tables()
         seed_demo_data()
 
     return app

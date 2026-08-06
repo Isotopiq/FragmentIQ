@@ -101,6 +101,62 @@ def welch_two_group(
     return row
 
 
+def resolve_group_columns(
+    metadata: Any,
+    parameters: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    """
+    Map metadata group columns to sample intensity columns in the feature table.
+    Defaults to the first two distinct group values if not explicitly provided.
+    """
+    group_col = parameters.get("group_column")
+    group_a_label = parameters.get("group_a")
+    group_b_label = parameters.get("group_b")
+    rows = getattr(metadata, "rows", metadata) or []
+    if not rows:
+        return ([], [])
+    if group_col and group_a_label and group_b_label:
+        sample_col = parameters.get("sample_column", "sample")
+        a_samples = [str(row.get(sample_col, "")) for row in rows if str(row.get(group_col, "")) == group_a_label]
+        b_samples = [str(row.get(sample_col, "")) for row in rows if str(row.get(group_col, "")) == group_b_label]
+        return (a_samples, b_samples)
+    # Fallback: use first two distinct values in the first metadata column
+    columns = getattr(metadata, "columns", None) or list(rows[0].keys())
+    if not columns:
+        return ([], [])
+    first_col = columns[0]
+    values = sorted({str(row.get(first_col, "")) for row in rows if row.get(first_col)})
+    if len(values) < 2:
+        return ([], [])
+    a_samples = [str(row.get(first_col, "")) for row in rows if str(row.get(first_col, "")) == values[0]]
+    b_samples = [str(row.get(first_col, "")) for row in rows if str(row.get(first_col, "")) == values[1]]
+    return (a_samples, b_samples)
+
+
+def compute_metadata_aware_statistics(
+    features: list[dict[str, Any]],
+    metadata: Any,
+    parameters: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """
+    Map metadata condition/group columns to feature table sample intensity columns,
+    apply log2 normalization and half-minimum imputation, then run Welch tests with BH-FDR.
+    """
+    group_a_columns, group_b_columns = resolve_group_columns(metadata, parameters)
+    if not group_a_columns or not group_b_columns:
+        return []
+    # Log2 transform intensities
+    transformed: list[dict[str, Any]] = []
+    for row in features:
+        new_row = dict(row)
+        for col in group_a_columns + group_b_columns:
+            if col in new_row:
+                val = _to_float(new_row[col])
+                new_row[col] = math.log2(val + 1.0) if val is not None and val > 0 else 0.0
+        transformed.append(new_row)
+    return welch_test_rows(transformed, group_a_columns, group_b_columns)
+
+
 def _to_float(value: Any) -> float | None:
     try:
         if value in (None, ""):
