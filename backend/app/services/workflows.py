@@ -179,33 +179,6 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
             "mz_tolerance": 0.1,
         },
     },
-    {
-        "id": "cfm-id-predict",
-        "name": "CFM-ID spectrum prediction",
-        "category": "CFM-ID",
-        "description": "Predict in-silico MS/MS spectra from SMILES/InChI using CFM-ID.",
-        "engines": ["cfm_id"],
-        "parameters": {
-            "ion_mode": "positive",
-            "adduct": "[M+H]+",
-            "cfm_model_id": None,
-        },
-    },
-    {
-        "id": "cfm-id-identify",
-        "name": "CFM-ID compound identification",
-        "category": "CFM-ID",
-        "description": "Identify compounds from MS/MS spectra using CFM-ID predicted candidates.",
-        "engines": ["cfm_id"],
-        "parameters": {
-            "ion_mode": "positive",
-            "score_type": "DotProduct",
-            "num_highest": 10,
-            "ppm_mass_tol": 10.0,
-            "abs_mass_tol": 0.01,
-            "cfm_model_id": None,
-        },
-    },
 ]
 
 

@@ -59,7 +59,6 @@ export function Models() {
             <option value="ms2deepscore">MS2DeepScore</option>
             <option value="ms2query">MS2Query</option>
             <option value="dreams">DreaMS</option>
-            <option value="cfm-id">CFM-ID</option>
             <option value="sirius">SIRIUS</option>
           </Select>
           <FileInput onChange={(event) => setModelFile(event.target.files?.[0] || null)} />
@@ -75,7 +74,6 @@ export function Models() {
           <Select value={training.engine} onChange={(event) => setTraining({ ...training, engine: event.target.value })}>
             <option value="dreams">DreaMS</option>
             <option value="ms2query">MS2Query</option>
-            <option value="cfm-id">CFM-ID</option>
           </Select>
           <Label>Training parameters (JSON)</Label>
           <TextInput value={training.parameters} onChange={(event) => setTraining({ ...training, parameters: event.target.value })} />

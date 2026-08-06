@@ -6,7 +6,6 @@ from typing import Any
 from app.core.config import settings
 from app.core.storage import safe_child
 from app.models.domain import Job, ModelAsset
-from app.services.cfm_id import CfmIdRunner
 
 
 class ModelTrainingPayload:
@@ -79,24 +78,6 @@ def train_ms2query(
     return output_dir
 
 
-def train_cfm(
-    input_filename: Path,
-    feature_filename: Path,
-    config_filename: Path,
-    spec_dir: Path,
-    output_dir: Path,
-    group: int | None = None,
-) -> Path:
-    """Wrap CFM-ID model training."""
-    runner = CfmIdRunner(
-        predict_binary=settings.cfm_binary,
-        identify_binary=settings.cfm_id_binary,
-        train_binary=settings.cfm_train_binary,
-        model_dir=Path(settings.models_dir) / "cfm",
-    )
-    return runner.train_model(input_filename, feature_filename, config_filename, spec_dir, output_dir, group)
-
-
 def run_model_training_job(job: Job, run_dir: Path) -> None:
     """Dispatch model training based on job.parameters['engine']."""
     params = job.parameters or {}
@@ -116,12 +97,6 @@ def run_model_training_job(job: Job, run_dir: Path) -> None:
     elif engine == "ms2query":
         spectrum_file = Path(params.get("spectrum_path"))
         train_ms2query(spectrum_file, params.get("ion_mode", "positive"), output_dir)
-    elif engine == "cfm-id":
-        input_filename = Path(params["input_filename"])
-        feature_filename = Path(params["feature_filename"])
-        config_filename = Path(params["config_filename"])
-        spec_dir = Path(params["spec_dir"])
-        train_cfm(input_filename, feature_filename, config_filename, spec_dir, output_dir, params.get("group"))
     else:
         raise ValueError(f"Unsupported model training engine: {engine}")
 

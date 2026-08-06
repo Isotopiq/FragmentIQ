@@ -28,10 +28,6 @@ class Settings(BaseSettings):
     sirius_use_api: bool = False
     sirius_accept_terms: bool = False
 
-    cfm_binary: str = "cfm-predict"
-    cfm_train_binary: str = "cfm-train"
-    cfm_id_binary: str = "cfm-id"
-
     # Engine asset directories
     ms2query_library_dir: Path = Path("./data/libraries/ms2query")
     dreams_cache_dir: Path = Path("./data/models/dreams")

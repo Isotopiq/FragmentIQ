@@ -69,7 +69,6 @@ export function Libraries() {
             <option value="ms2deepscore">MS2DeepScore</option>
             <option value="ms2query">MS2Query</option>
             <option value="dreams">DreaMS</option>
-            <option value="cfm-id">CFM-ID</option>
             <option value="sirius">SIRIUS</option>
           </Select>
           <FileInput onChange={(event) => setModelFile(event.target.files?.[0] || null)} />
