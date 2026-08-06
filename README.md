@@ -20,8 +20,8 @@ docker compose up --build
 
 Open:
 
-- Frontend: http://localhost:3000
-- Backend API docs: http://localhost:8000/docs
+- Frontend: http://localhost:47831
+- Backend API docs: http://localhost:47830/docs
 
 ## Local development
 
