@@ -34,18 +34,29 @@ class SiriusApiClient:
         PySirius = self._import_pysirius()
         SiriusSDK = PySirius.SiriusSDK
         AccountCredentials = PySirius.AccountCredentials
+        sdk = SiriusSDK()
         if self.url:
-            self._api = SiriusSDK().attach_to_sirius(self.url)
+            self._api = sdk.connect(self.url)
         else:
-            self._api = SiriusSDK().attach_or_start_sirius(sirius_path=self.sirius_path)
+            # Try to attach to an already-running local SIRIUS service; if none
+            # is found, start a new one (using the provided binary path if any).
+            self._api = sdk.attach_to_sirius()
+            if not self._api:
+                start_kwargs: dict[str, Any] = {"headless": True}
+                if self.sirius_path:
+                    start_kwargs["sirius_path"] = self.sirius_path
+                self._api = sdk.start_sirius(**start_kwargs)
+        if not self._api:
+            raise RuntimeError("Could not connect to or start a SIRIUS service.")
         self._sdk = PySirius
         self._api.account().login(self.accept_terms, AccountCredentials(username=self.username, password=self.password))
         return self
 
     def __exit__(self, *exc: Any) -> None:
-        if self._api and self._sdk:
+        # Only shut down a service we started locally; leave remote services alone.
+        if self._api and self._sdk and not self.url:
             try:
-                self._sdk.SiriusSDK().shutdown_sirius(self._api)
+                self._sdk.SiriusSDK().shutdown_sirius()
             except Exception:
                 pass
 
