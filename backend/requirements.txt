@@ -3,9 +3,9 @@ uvicorn[standard]
 sqlmodel
 python-multipart
 pydantic-settings
-pandas
-numpy
-scipy
+pandas<3
+numpy<1.25
+scipy<1.11
 scikit-learn
 statsmodels
 aiofiles

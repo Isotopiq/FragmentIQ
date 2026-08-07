@@ -147,7 +147,6 @@ export function SpectralIdentification() {
               <Select value={engine} onChange={(e) => setEngine(e.target.value)}>
                 <option value="matchms">matchms (modified cosine)</option>
                 <option value="ms2query">MS2Query (fallback cosine)</option>
-                <option value="dreams">DreaMS (fallback cosine)</option>
                 <option value="ms2deepscore">MS2DeepScore (fallback cosine)</option>
               </Select>
             </div>

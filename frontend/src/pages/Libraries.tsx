@@ -68,7 +68,6 @@ export function Libraries() {
           <Select value={modelEngine} onChange={(event) => setModelEngine(event.target.value)}>
             <option value="ms2deepscore">MS2DeepScore</option>
             <option value="ms2query">MS2Query</option>
-            <option value="dreams">DreaMS</option>
             <option value="sirius">SIRIUS</option>
           </Select>
           <FileInput onChange={(event) => setModelFile(event.target.files?.[0] || null)} />

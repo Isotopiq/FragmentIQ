@@ -21,7 +21,7 @@ from app.core.storage import (
     zip_paths,
 )
 from app.models.domain import DatasetFile, Job, JobCreate, JobLog, LibraryAsset, MetadataTable, ModelAsset, Project, ResultTable, Workflow
-from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, install_package
+from app.services.engines import INSTALLABLE_PACKAGES, detect_engines, get_install_status, install_package
 from app.services.jobs import build_results_zip, create_job, event_stream, result_rows
 from app.services.parsers import parse_metadata_text, validate_metadata_rows
 from app.services.spectral_libraries import index_spectral_library
@@ -405,7 +405,7 @@ async def upload_library(
     filename = sanitize_filename(file.filename or "library.mgf")
     destination = safe_child(settings.libraries_dir, filename)
     await save_upload(file, destination)
-    asset = LibraryAsset(name=name, source=source, path=str(destination), size_bytes=file_size(destination), supported_engines=["matchms", "ms2deepscore", "ms2query", "dreams"])
+    asset = LibraryAsset(name=name, source=source, path=str(destination), size_bytes=file_size(destination), supported_engines=["matchms", "ms2deepscore", "ms2query"])
     session.add(asset)
     session.commit()
     session.refresh(asset)
@@ -435,7 +435,7 @@ def index_library(library_id: int, session: Session = Depends(get_session)) -> L
         raise HTTPException(status_code=404, detail="Library not found")
     meta = index_spectral_library(asset)
     asset.indexed = True
-    asset.supported_engines = sorted(set(asset.supported_engines + ["matchms", "ms2query", "dreams", "sirius"]))
+    asset.supported_engines = sorted(set(asset.supported_engines + ["matchms", "ms2query", "sirius"]))
     session.add(asset)
     session.commit()
     session.refresh(asset)
@@ -546,6 +546,11 @@ def install_system_package(payload: dict[str, str]) -> dict[str, Any]:
             detail=f"Package '{package_name}' is not installable. Allowed: {', '.join(sorted(INSTALLABLE_PACKAGES))}",
         )
     return install_package(package_name)
+
+
+@router.get("/system/packages/status")
+def list_install_status() -> dict[str, Any]:
+    return {"installs": get_install_status()}
 
 
 @router.post("/spectral-search")

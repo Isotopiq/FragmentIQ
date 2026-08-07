@@ -52,14 +52,13 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
         "id": "full-consensus-annotation",
         "name": "Full MS/MS consensus annotation workflow",
         "category": "ML-MS/MS",
-        "description": "MZmine -> SIRIUS -> matchms cosine -> MS2DeepScore -> MS2Query -> DREAMS with unified ranking.",
-        "engines": ["mzmine", "sirius", "matchms", "ms2deepscore", "ms2query", "dreams"],
+        "description": "MZmine -> SIRIUS -> matchms cosine -> MS2DeepScore -> MS2Query with unified ranking.",
+        "engines": ["mzmine", "sirius", "matchms", "ms2deepscore", "ms2query"],
         "parameters": {
             "top_n": 10,
             "matchms_min_cosine": 0.7,
             "ms2deepscore_threshold": 0.75,
             "ms2query_threshold": 0.6,
-            "dreams_threshold": 0.6,
             "consensus_strategy": "weighted",
             "weights": {
                 "sirius_structure_score": 0.3,
@@ -67,7 +66,6 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
                 "matchms_cosine": 0.2,
                 "ms2deepscore": 0.15,
                 "ms2query_score": 0.1,
-                "dreams_score": 0.05,
             },
         },
     },
@@ -151,17 +149,6 @@ WORKFLOW_PRESETS: list[dict[str, Any]] = [
         "parameters": {
             "ion_mode": "positive",
             "top_n": 10,
-        },
-    },
-    {
-        "id": "dreams-library-search",
-        "name": "DreaMS library search",
-        "category": "ML-MS/MS",
-        "description": "Use DreaMS embeddings for spectral similarity and library search.",
-        "engines": ["dreams"],
-        "parameters": {
-            "ion_mode": "positive",
-            "top_n": 5,
         },
     },
     {

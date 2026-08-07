@@ -6,7 +6,7 @@ import type { ModelAsset } from '../lib/types';
 export function Models() {
   const [models, setModels] = useState<ModelAsset[]>([]);
   const [message, setMessage] = useState('');
-  const [training, setTraining] = useState<{ project_id: number; name: string; engine: string; parameters: string }>({ project_id: 0, name: '', engine: 'dreams', parameters: '{}' });
+  const [training, setTraining] = useState<{ project_id: number; name: string; engine: string; parameters: string }>({ project_id: 0, name: '', engine: 'ms2query', parameters: '{}' });
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [engine, setEngine] = useState('ms2deepscore');
 
@@ -58,7 +58,6 @@ export function Models() {
           <Select value={engine} onChange={(event) => setEngine(event.target.value)}>
             <option value="ms2deepscore">MS2DeepScore</option>
             <option value="ms2query">MS2Query</option>
-            <option value="dreams">DreaMS</option>
             <option value="sirius">SIRIUS</option>
           </Select>
           <FileInput onChange={(event) => setModelFile(event.target.files?.[0] || null)} />
@@ -72,7 +71,6 @@ export function Models() {
           <TextInput value={training.name} onChange={(event) => setTraining({ ...training, name: event.target.value })} placeholder="e.g. DreaMS fine-tune" />
           <Label>Engine</Label>
           <Select value={training.engine} onChange={(event) => setTraining({ ...training, engine: event.target.value })}>
-            <option value="dreams">DreaMS</option>
             <option value="ms2query">MS2Query</option>
           </Select>
           <Label>Training parameters (JSON)</Label>
