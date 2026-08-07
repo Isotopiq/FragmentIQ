@@ -257,16 +257,32 @@ def _asset_status(path: Path, empty_status: str) -> dict[str, Any]:
     return {"status": "available" if items else empty_status, "count": len(items), "items": items}
 
 
+def _sirius_api_status() -> dict[str, Any]:
+    """If a SIRIUS REST API URL is configured, verify it responds."""
+    url = settings.sirius_api_url
+    if not url:
+        return {"status": "not_configured", "notes": "Set SIRIUS_API_URL or the SIRIUS executable path."}
+    try:
+        import PySirius
+        api = PySirius.SiriusSDK().connect(url)
+        info = api.infos().get_info()
+        return {
+            "status": "available",
+            "version": info.sirius_version,
+            "url": url,
+            "notes": "SIRIUS REST API reachable. Login credentials are verified separately via Test connection.",
+        }
+    except Exception as exc:
+        return {"status": "error", "url": url, "message": str(exc), "notes": "SIRIUS REST API is configured but not reachable."}
+
+
 def detect_engines() -> dict[str, Any]:
     return {
         "python": {"status": "available", "version": sys.version.split()[0]},
         "platform": {"status": "available", "version": platform.platform()},
         "java": command_status("java", ["-version"]),
         "mzmine": command_status(settings.mzmine_binary, ["--version"]),
-        "sirius": {
-            **command_status(settings.sirius_binary, ["--version"]),
-            "notes": "SIRIUS login/license configuration is server-side only.",
-        },
+        "sirius": _sirius_api_status(),
         "py-sirius-ms": {**package_status("PySirius"), "installable": package_name_in_allowlist("py-sirius-ms")},
         "matchms": {**package_status("matchms"), "installable": package_name_in_allowlist("matchms")},
         "ms2deepscore": {**package_status("ms2deepscore"), "installable": package_name_in_allowlist("ms2deepscore")},
