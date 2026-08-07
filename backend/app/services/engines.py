@@ -73,11 +73,6 @@ INSTALLABLE_PACKAGES: dict[str, _InstallSpec] = {
         "git+https://github.com/sirius-ms/sirius-client-openAPI.git#subdirectory=client-api_python/generated",
         module_name="PySirius",
     ),
-    "dreams": _InstallSpec(
-        "git+https://github.com/pluskal-lab/DreaMS.git",
-        module_name="dreams",
-        ignore_requires_python=True,
-    ),
 }
 
 _CONSTRAINT_FILE = Path("/tmp/fragmentiq_pip_constraints.txt")
@@ -87,10 +82,14 @@ _CONSTRAINT_FILE = Path("/tmp/fragmentiq_pip_constraints.txt")
 # keep the whole engine toolchain on the 0.26.x line.
 _CONSTRAINT_PINS = [
     "setuptools<72",
+    "numpy<1.25",
+    "pandas<3",
+    "scipy<1.11",
     "matchms==0.26.4",
     "spec2vec==0.8.0",
     "ms2deepscore==2.0.0",
     "ms2query==1.5.4",
+    "rdkit==2023.9.4",
 ]
 
 
@@ -272,7 +271,6 @@ def detect_engines() -> dict[str, Any]:
         "matchms": {**package_status("matchms"), "installable": package_name_in_allowlist("matchms")},
         "ms2deepscore": {**package_status("ms2deepscore"), "installable": package_name_in_allowlist("ms2deepscore")},
         "ms2query": {**package_status("ms2query"), "installable": package_name_in_allowlist("ms2query")},
-        "dreams": {**package_status("dreams"), "installable": package_name_in_allowlist("dreams")},
         "spec2vec": {**package_status("spec2vec"), "installable": package_name_in_allowlist("spec2vec")},
         "rdkit": {**package_status("rdkit"), "installable": package_name_in_allowlist("rdkit")},
         "models": _asset_status(settings.models_dir, "needs_model"),

@@ -405,7 +405,7 @@ async def upload_library(
     filename = sanitize_filename(file.filename or "library.mgf")
     destination = safe_child(settings.libraries_dir, filename)
     await save_upload(file, destination)
-    asset = LibraryAsset(name=name, source=source, path=str(destination), size_bytes=file_size(destination), supported_engines=["matchms", "ms2deepscore", "ms2query", "dreams"])
+    asset = LibraryAsset(name=name, source=source, path=str(destination), size_bytes=file_size(destination), supported_engines=["matchms", "ms2deepscore", "ms2query"])
     session.add(asset)
     session.commit()
     session.refresh(asset)
@@ -435,7 +435,7 @@ def index_library(library_id: int, session: Session = Depends(get_session)) -> L
         raise HTTPException(status_code=404, detail="Library not found")
     meta = index_spectral_library(asset)
     asset.indexed = True
-    asset.supported_engines = sorted(set(asset.supported_engines + ["matchms", "ms2query", "dreams", "sirius"]))
+    asset.supported_engines = sorted(set(asset.supported_engines + ["matchms", "ms2query", "sirius"]))
     session.add(asset)
     session.commit()
     session.refresh(asset)

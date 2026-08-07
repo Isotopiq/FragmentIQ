@@ -1,0 +1,8 @@
+# Pre-installed spectral/ML engines for Docker builds.
+# These versions are mutually compatible with the numpy/scipy pins in requirements.txt.
+matchms==0.26.4
+spec2vec==0.8.0
+ms2deepscore==2.0.0
+ms2query==1.5.4
+rdkit==2023.9.4
+pysirius @ git+https://github.com/sirius-ms/sirius-client-openAPI.git#subdirectory=client-api_python/generated
