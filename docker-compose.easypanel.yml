@@ -17,6 +17,8 @@ services:
     environment:
       DATABASE_URL: sqlite:////app/data/database/fragmentiq.db
       STORAGE_ROOT: /app/data
+      SIRIUS_USE_API: true
+      SIRIUS_API_URL: http://sirius:9999
     volumes:
       - fragmentiq-data:/app/data
       - ./example_workflows:/app/example_workflows:ro
@@ -24,6 +26,21 @@ services:
       - 8000
     depends_on:
       - redis
+      - sirius
+    restart: unless-stopped
+
+  sirius:
+    image: rformassspectrometry/rusirius:latest
+    entrypoint: ["/home/rstudio/sirius/bin/sirius"]
+    command: ["service", "-p", "9999", "-s", "--headless"]
+    expose:
+      - 9999
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9999/api/info').read()"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   frontend:

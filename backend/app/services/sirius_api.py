@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -137,6 +139,23 @@ class SiriusApiClient:
         return rows
 
 
+def _parse_sirius_api_error(exc: Exception) -> str:
+    """Extract a human-readable message from a PySirius ServiceException body."""
+    body = getattr(exc, "body", None)
+    if body:
+        try:
+            data = json.loads(body)
+            detail = data.get("detail", "")
+            if detail:
+                match = re.search(r'"error_description":"([^"]+)"', detail)
+                if match:
+                    return match.group(1)
+                return detail
+        except Exception:
+            pass
+    return f"SIRIUS connection failed: {exc}"
+
+
 def test_sirius_connection(
     sirius_path: str | None,
     username: str,
@@ -152,7 +171,7 @@ def test_sirius_connection(
     except RuntimeError as exc:
         return {"status": "error", "message": str(exc)}
     except Exception as exc:
-        return {"status": "error", "message": f"SIRIUS connection failed: {exc}"}
+        return {"status": "error", "message": _parse_sirius_api_error(exc)}
 
 
 # Imported here to avoid circular dependency
